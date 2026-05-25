@@ -1,7 +1,9 @@
 import re
 import unicodedata
+import zipfile
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from io import BytesIO
 from typing import Optional
 
@@ -443,6 +445,35 @@ def crear_excel_en_memoria(df_resumen, df_detalle, df_alertas):
     return output.getvalue()
 
 
+def crear_respaldo_zip(texto_original, df_resumen, df_detalle, df_alertas):
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    output = BytesIO()
+
+    excel_bytes = crear_excel_en_memoria(df_resumen, df_detalle, df_alertas)
+
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr(f"{timestamp}_reporte_para_copiar.xlsx", excel_bytes)
+        zip_file.writestr(f"{timestamp}_texto_original.txt", texto_original)
+
+        zip_file.writestr(
+            f"{timestamp}_resumen_para_copiar.csv",
+            df_resumen.to_csv(index=False).encode("utf-8-sig")
+        )
+
+        zip_file.writestr(
+            f"{timestamp}_detalle_normalizado.csv",
+            df_detalle.to_csv(index=False).encode("utf-8-sig")
+        )
+
+        zip_file.writestr(
+            f"{timestamp}_alertas.csv",
+            df_alertas.to_csv(index=False).encode("utf-8-sig")
+        )
+
+    output.seek(0)
+    return output.getvalue(), timestamp
+
+
 # ==========================================================
 # INTERFAZ
 # ==========================================================
@@ -518,6 +549,7 @@ if st.session_state["resultado_generado"]:
     df_resumen = st.session_state["df_resumen"]
     df_detalle = st.session_state["df_detalle"]
     df_alertas = st.session_state["df_alertas"]
+    texto_original = st.session_state["texto_reportes"]
 
     st.subheader("Reporte para copiar")
 
@@ -528,12 +560,30 @@ if st.session_state["resultado_generado"]:
 
         excel_bytes = crear_excel_en_memoria(df_resumen, df_detalle, df_alertas)
 
-        st.download_button(
-            label="Descargar Excel",
-            data=excel_bytes,
-            file_name="reporte_para_copiar.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+        col_descarga1, col_descarga2 = st.columns([1, 1])
+
+        with col_descarga1:
+            st.download_button(
+                label="Descargar Excel",
+                data=excel_bytes,
+                file_name="reporte_para_copiar.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        with col_descarga2:
+            respaldo_bytes, timestamp = crear_respaldo_zip(
+                texto_original=texto_original,
+                df_resumen=df_resumen,
+                df_detalle=df_detalle,
+                df_alertas=df_alertas
+            )
+
+            st.download_button(
+                label="Descargar respaldo completo ZIP",
+                data=respaldo_bytes,
+                file_name=f"respaldo_reporte_{timestamp}.zip",
+                mime="application/zip"
+            )
 
     with st.expander("Ver detalle normalizado"):
         st.dataframe(df_detalle, use_container_width=True)
