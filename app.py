@@ -181,7 +181,6 @@ def preparar_texto(texto):
 def extraer_items_materiales(linea):
     original = linea
     linea = linea.strip().lstrip("- ").strip()
-
     resultados = []
 
     m = re.match(r"^([a-záéíóúñü ]+?)\s*:\s*(\d+)?", linea, flags=re.I)
@@ -444,9 +443,38 @@ def crear_excel_en_memoria(df_resumen, df_detalle, df_alertas):
     return output.getvalue()
 
 
-texto = st.text_area(
+# ==========================================================
+# INTERFAZ
+# ==========================================================
+
+if "texto_reportes" not in st.session_state:
+    st.session_state["texto_reportes"] = ""
+
+if "resultado_generado" not in st.session_state:
+    st.session_state["resultado_generado"] = False
+
+if "df_resumen" not in st.session_state:
+    st.session_state["df_resumen"] = pd.DataFrame()
+
+if "df_detalle" not in st.session_state:
+    st.session_state["df_detalle"] = pd.DataFrame()
+
+if "df_alertas" not in st.session_state:
+    st.session_state["df_alertas"] = pd.DataFrame()
+
+
+def borrar_todo():
+    st.session_state["texto_reportes"] = ""
+    st.session_state["resultado_generado"] = False
+    st.session_state["df_resumen"] = pd.DataFrame()
+    st.session_state["df_detalle"] = pd.DataFrame()
+    st.session_state["df_alertas"] = pd.DataFrame()
+
+
+st.text_area(
     "Pega aquí uno o varios reportes de WhatsApp",
     height=380,
+    key="texto_reportes",
     placeholder="""Ejemplo:
 [18/5, 4:37 p.m.] Valeria: 9-r41
 1, RC
@@ -456,9 +484,17 @@ Histórico
 - cerámica: 4"""
 )
 
-procesar = st.button("Procesar reportes", type="primary")
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    procesar = st.button("Procesar reportes", type="primary")
+
+with col2:
+    st.button("Borrar resultados", on_click=borrar_todo)
 
 if procesar:
+    texto = st.session_state["texto_reportes"]
+
     if not texto.strip():
         st.warning("Debes pegar al menos un reporte.")
     else:
@@ -472,17 +508,23 @@ if procesar:
         else:
             df_alertas = pd.DataFrame({"Estado": ["Sin alertas"]})
 
-        st.subheader("Reporte para copiar")
-        if df_resumen.empty:
-            st.error("No se pudo generar el resumen. Revisa si el texto contiene unidad, nivel, cronología y materiales.")
-        else:
-            st.dataframe(df_resumen, use_container_width=True)
+        st.session_state["df_resumen"] = df_resumen
+        st.session_state["df_detalle"] = df_detalle
+        st.session_state["df_alertas"] = df_alertas
+        st.session_state["resultado_generado"] = True
 
-        with st.expander("Ver detalle normalizado"):
-            st.dataframe(df_detalle, use_container_width=True)
 
-        with st.expander("Ver alertas"):
-            st.dataframe(df_alertas, use_container_width=True)
+if st.session_state["resultado_generado"]:
+    df_resumen = st.session_state["df_resumen"]
+    df_detalle = st.session_state["df_detalle"]
+    df_alertas = st.session_state["df_alertas"]
+
+    st.subheader("Reporte para copiar")
+
+    if df_resumen.empty:
+        st.error("No se pudo generar el resumen. Revisa si el texto contiene unidad, nivel, cronología y materiales.")
+    else:
+        st.dataframe(df_resumen, use_container_width=True)
 
         excel_bytes = crear_excel_en_memoria(df_resumen, df_detalle, df_alertas)
 
@@ -492,3 +534,9 @@ if procesar:
             file_name="reporte_para_copiar.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+    with st.expander("Ver detalle normalizado"):
+        st.dataframe(df_detalle, use_container_width=True)
+
+    with st.expander("Ver alertas"):
+        st.dataframe(df_alertas, use_container_width=True)
