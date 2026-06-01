@@ -9,18 +9,22 @@ from typing import Optional
 
 import pandas as pd
 import streamlit as st
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 
 
-st.set_page_config(page_title="Reporte WhatsApp Arqueología", page_icon="📋", layout="wide")
+# ==========================================================
+# CONFIGURACIÓN STREAMLIT
+# ==========================================================
 
-st.title("📋 Generador de reporte desde WhatsApp")
-st.write(
-    "Pega reportes de WhatsApp, revisa/edita los datos extraídos y descarga "
-    "un Excel listo para copiar a la planilla maestra."
+st.set_page_config(
+    page_title="Reporte WhatsApp Arqueología",
+    page_icon="📋",
+    layout="wide"
 )
 
 # ==========================================================
-# CONFIGURACIÓN
+# CONFIGURACIÓN GENERAL
 # ==========================================================
 
 MATERIAL_MAP = {
@@ -49,6 +53,92 @@ ORDEN_FRECUENCIA = [
 
 MATERIAL_SIN_MATERIAL = "sin material"
 MATERIALES_EXCLUIDOS_DESCRIPCION = {"malacológico", "misceláneo", MATERIAL_SIN_MATERIAL}
+
+COLUMNAS_EDITOR = [
+    "fecha", "unidad", "nivel", "estrato", "cronologia",
+    "material", "cantidad", "material_nuevo", "linea_original"
+]
+
+COLUMNAS_RESUMEN = [
+    "Fecha", "Unidad", "Nivel de inicio", "Nivel de término",
+    "Total niveles excavados", "Nivel de cierre", "Estratigrafía",
+    "Material cultural", "Descripción general", "Cronología", "Frecuencia históricos"
+]
+
+REPORTE_EJEMPLO = """[18/5, 4:37 p.m.] Valeria: 9-r41
+Se solicita equipo de excavadores que llegan a eso de las ~10:30 al pique.
+1, RC
+Subactual
+- plástico: 6
+- vidrio: 13
+- osteofauna: 4
+- metal: 7
+- loza: 2
+- malacológico: 1
+Histórico
+- cerámica: 4
+2, RC
+Subactual
+- plástico: 35
+- vidrio: 69
+- metal: 10
+- osteofauna: 4
+- malacológico: 4
+- loza: 6
+Histórico
+- loza: 1
+3, RC
+Subactual
+- plástico: 12
+- vidrio: 90
+- metal: 5
+- osteofauna: 7
+- malacológico: 1
+- loza: 2
+Histórico
+- metal: 1
+4, A
+Subactual
+- plástico: 33
+- vidrio: 107
+- metal: 17
+- osteofauna: 10
+- malacológico: 3
+- loza: 5
+Histórico
+- loza 7
+- baldosa: 1
+5, A
+Subactual
+- plástico: 1
+- vidrio: 18
+- metal: 9
+- osteofauna: 8
+- malacológico: 2
+- loza: 13
+Histórico
+- cerámica: 2
+- baldosa: 1
+6, A
+Subactual
+- plástico: 2
+- vidrio: 10
+- metal: 3
+- osteofauna: 19
+- malacológico: 8
+- loza: 10
+Histórico
+- loza: 13
+- misceláneo: 1
+- baldosa: 1
+7, A
+Subactual
+- vidrio: 1
+- metal: 2
+- malacológico: 3
+- loza: 1
+Histórico
+- loza: 3"""
 
 
 @dataclass
@@ -93,9 +183,11 @@ def normalizar_material_desconocido(raw):
     key = limpiar_texto_material(raw)
     if not key:
         return None
+
     # Evita capturar frases largas como si fueran materiales.
     if len(key.split()) > 3:
         return None
+
     return key
 
 
@@ -103,9 +195,11 @@ def material_con_alerta(raw):
     mat = normalizar_material(raw)
     if mat:
         return mat, False
+
     mat_nuevo = normalizar_material_desconocido(raw)
     if mat_nuevo:
         return mat_nuevo, True
+
     return None, False
 
 
@@ -122,6 +216,7 @@ def nivel_a_profundidad_inicio(nivel):
         nivel = int(nivel)
     except Exception:
         return "No informado"
+
     if nivel == 1:
         return "Superficie"
     return f"{nivel} ({(nivel - 1) * 10}-{nivel * 10} cm)"
@@ -132,6 +227,7 @@ def nivel_a_profundidad_termino(nivel):
         nivel = int(nivel)
     except Exception:
         return "No informado"
+
     return f"{nivel} ({(nivel - 1) * 10}-{nivel * 10} cm)"
 
 
@@ -165,7 +261,7 @@ def preparar_texto(texto):
         texto
     )
 
-    # Unidad explícita
+    # Unidad explícita.
     texto = re.sub(
         r"\bUnidad\s+([0-9]+-[a-z]+[0-9]*|[0-9]+[a-z]?)\b",
         r"\nUNIDAD \1\n",
@@ -173,7 +269,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
-    # Unidad sin palabra Unidad: 9-r41 / 8-re / 7a / 7b
+    # Unidad sin palabra Unidad: 9-r41 / 8-re / 7a / 7b.
     texto = re.sub(
         r"(?<!NIVEL\s)(?<!Nivel\s)(?<!N)(?<!N\s)\b([0-9]+-[a-z]+[0-9]*|[0-9]+[a-z])\b",
         r"\nUNIDAD \1\n",
@@ -181,7 +277,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
-    # Nivel con capa explícita: Nivel 31 - Capa G / Nivel 45, Capa G
+    # Nivel con capa explícita: Nivel 31 - Capa G / Nivel 45, Capa G.
     texto = re.sub(
         r"\bNivel\s+(\d{1,2})\s*[-:.,]?\s*Capa\s*([A-Za-z]{1,4})\b",
         r"\nNIVEL \1, \2\n",
@@ -189,7 +285,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
-    # N31, G
+    # N31, G.
     texto = re.sub(
         r"\bN\s*(\d{1,2})\s*,\s*([A-Za-z]{1,4})\b",
         r"\nNIVEL \1, \2\n",
@@ -197,7 +293,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
-    # 1, RC / 4, A / 11, RD
+    # 1, RC / 4, A / 11, RD.
     texto = re.sub(
         r"(?<!\d)\b(\d{1,2})\s*,\s*([A-Za-z]{1,4})(?![A-Za-z])",
         r"\nNIVEL \1, \2\n",
@@ -205,7 +301,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
-    # Nivel sin capa: Nivel 37, queda picado
+    # Nivel sin capa: Nivel 37, queda picado.
     texto = re.sub(
         r"\bNivel\s+(\d{1,2})\b(?!\s*,)(?!\s*[-:.,]?\s*Capa)",
         r"\nNIVEL \1\n",
@@ -213,7 +309,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
-    # Cronologías. Reconoce también Histórico: 0 / Subactual: 0
+    # Cronologías. Reconoce Histórico, Histórico: 0, Histórico= 10, Material arqueológico (n=11).
     texto = re.sub(
         r"(?:^|\s)-?\s*(Material arqueológico|Material arqueologico|Histórico|Historico)\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+|\d+)?\s*:??",
         r"\nCRONO histórico\n",
@@ -221,6 +317,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
+    # Cronologías. Reconoce Subactual, Subactual: 0, Subactual= 4, Material subactual (n=3).
     texto = re.sub(
         r"(?:^|\s)-?\s*(Material subactual|Subactual)\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+)?\s*:??",
         r"\nCRONO subactual\n",
@@ -228,6 +325,7 @@ def preparar_texto(texto):
         flags=re.I
     )
 
+    # Separar ítems con guion.
     texto = re.sub(r"\s+-\s*", r"\n- ", texto)
 
     lineas = []
@@ -235,6 +333,7 @@ def preparar_texto(texto):
         linea = linea.strip()
         if linea:
             lineas.append(re.sub(r"\s+", " ", linea))
+
     return lineas
 
 
@@ -269,7 +368,7 @@ def extraer_items_materiales(linea):
         if mat:
             return [(mat, int(m.group(2)), original, nuevo)]
 
-    # número material / varios en una línea: 1 loza, 3 vidrios
+    # número material / varios en una línea: 1 loza, 3 vidrios.
     for cant, mat_raw in re.findall(r"(\d+)\s+([a-záéíóúñü]+)", linea, flags=re.I):
         mat, nuevo = material_con_alerta(mat_raw)
         if mat:
@@ -284,6 +383,7 @@ def extraer_items_materiales(linea):
 
 def parsear_todo(texto):
     lineas = preparar_texto(texto)
+
     registros = []
     alertas = []
     cronologias_declaradas = []
@@ -318,6 +418,7 @@ def parsear_todo(texto):
         if linea.startswith("NIVEL"):
             resto = linea.replace("NIVEL", "").strip()
             m = re.match(r"(\d{1,2})\s*,\s*([A-Za-z]{1,4})", resto)
+
             if m:
                 nivel_actual = int(m.group(1))
                 estrato_actual = m.group(2).upper()
@@ -328,7 +429,9 @@ def parsear_todo(texto):
                     nivel_actual = int(m.group(1))
                     estrato_actual = None
                     cronologia_actual = None
-                    alertas.append(f"Estrato pendiente: unidad {unidad_actual or 'No informado'}, nivel {nivel_actual}")
+                    alertas.append(
+                        f"Estrato pendiente: unidad {unidad_actual or 'No informado'}, nivel {nivel_actual}"
+                    )
             continue
 
         if linea.startswith("CRONO"):
@@ -346,9 +449,11 @@ def parsear_todo(texto):
             continue
 
         items = extraer_items_materiales(linea)
+
         if items:
             for material, cantidad, original, material_nuevo in items:
                 unidad_para_registro = unidad_actual or "No informado"
+
                 if unidad_actual is None:
                     alertas.append(f"Material sin unidad: {original}")
 
@@ -357,14 +462,21 @@ def parsear_todo(texto):
                     continue
 
                 cronologia_para_registro = cronologia_actual or "No informado"
+
                 if cronologia_actual is None:
-                    alertas.append(f"Material sin cronología: unidad {unidad_para_registro}, nivel {nivel_actual}, {original}")
+                    alertas.append(
+                        f"Material sin cronología: unidad {unidad_para_registro}, nivel {nivel_actual}, {original}"
+                    )
 
                 if cantidad is None:
-                    alertas.append(f"Cantidad pendiente: unidad {unidad_para_registro}, nivel {nivel_actual}, {material}")
+                    alertas.append(
+                        f"Cantidad pendiente: unidad {unidad_para_registro}, nivel {nivel_actual}, {material}"
+                    )
 
                 if material_nuevo:
-                    alertas.append(f"Material nuevo no catastrado: '{material}' en unidad {unidad_para_registro}, nivel {nivel_actual}")
+                    alertas.append(
+                        f"Material nuevo/no catastrado: '{material}' en unidad {unidad_para_registro}, nivel {nivel_actual}"
+                    )
 
                 registros.append(Registro(
                     fecha=fecha_actual or fecha_whatsapp or "No informado",
@@ -379,7 +491,9 @@ def parsear_todo(texto):
                 ))
 
         if "conteo pendiente" in strip_accents_lower(linea):
-            alertas.append(f"Conteo pendiente: unidad {unidad_actual or 'No informado'}, nivel {nivel_actual or 'No informado'}")
+            alertas.append(
+                f"Conteo pendiente: unidad {unidad_actual or 'No informado'}, nivel {nivel_actual or 'No informado'}"
+            )
 
     # Crea filas para cronologías/niveles declarados sin materiales, por ejemplo Histórico: 0.
     claves_con_material = {
@@ -390,6 +504,7 @@ def parsear_todo(texto):
 
     for c in cronologias_declaradas:
         clave = (c["fecha"], c["unidad"], int(c["nivel"]), c["estrato"], c["cronologia"])
+
         if clave not in claves_con_material:
             registros.append(Registro(
                 fecha=clave[0],
@@ -411,37 +526,43 @@ def parsear_todo(texto):
 # ==========================================================
 
 def registros_a_df(registros):
-    columnas = ["fecha", "unidad", "nivel", "estrato", "cronologia", "material", "cantidad", "material_nuevo", "linea_original"]
     if not registros:
-        return pd.DataFrame(columns=columnas)
-    return pd.DataFrame([vars(r) for r in registros])[columnas]
+        return pd.DataFrame(columns=COLUMNAS_EDITOR)
+    return pd.DataFrame([vars(r) for r in registros])[COLUMNAS_EDITOR]
 
 
 def limpiar_df_editado(df):
-    columnas = ["fecha", "unidad", "nivel", "estrato", "cronologia", "material", "cantidad", "material_nuevo", "linea_original"]
     if df is None or df.empty:
-        return pd.DataFrame(columns=columnas)
+        return pd.DataFrame(columns=COLUMNAS_EDITOR)
 
     df = df.copy()
-    for col in columnas:
+
+    for col in COLUMNAS_EDITOR:
         if col not in df.columns:
             df[col] = None
-    df = df[columnas]
+
+    df = df[COLUMNAS_EDITOR]
 
     df["fecha"] = df["fecha"].fillna("No informado").astype(str).str.strip()
     df["unidad"] = df["unidad"].fillna("No informado").astype(str).str.lower().str.strip()
+
     df["estrato"] = df["estrato"].fillna("No informado").astype(str).str.upper().str.strip()
     df.loc[df["estrato"].isin(["", "NONE", "NAN"]), "estrato"] = "No informado"
+
     df["cronologia"] = df["cronologia"].fillna("No informado").astype(str).str.lower().str.strip()
     df["material"] = df["material"].fillna(MATERIAL_SIN_MATERIAL).astype(str).str.lower().str.strip()
+
     df["nivel"] = pd.to_numeric(df["nivel"], errors="coerce")
     df["cantidad"] = pd.to_numeric(df["cantidad"], errors="coerce")
+
     df["material_nuevo"] = df["material_nuevo"].fillna(False).astype(bool)
     df["linea_original"] = df["linea_original"].fillna("").astype(str)
 
     df = df.dropna(subset=["nivel"])
+
     if not df.empty:
         df["nivel"] = df["nivel"].astype(int)
+
     return df
 
 
@@ -466,13 +587,15 @@ def nombre_material_frecuencia(material):
 
 def resumen_por_grupo_df(df):
     df = limpiar_df_editado(df)
+
     if df.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=COLUMNAS_RESUMEN)
 
     resumenes = []
 
     for (fecha, unidad), grupo in df.groupby(["fecha", "unidad"], dropna=False):
         niveles = sorted(grupo["nivel"].dropna().astype(int).unique())
+
         if not niveles:
             continue
 
@@ -495,22 +618,40 @@ def resumen_por_grupo_df(df):
             e for e in grupo["estrato"].dropna().unique()
             if str(e).strip() not in {"", "No informado", "NONE", "NAN"}
         ]
+
         for e in estratos_declarados:
             por_estrato[e] += 0
+
         for _, r in historicos.iterrows():
             estrato = r["estrato"] if r["estrato"] != "No informado" else "SIN ESTRATO"
             por_estrato[estrato] += int(r["cantidad"])
 
-        col_j = " ".join(f"{estrato} (N={total})" for estrato, total in por_estrato.items()) or "No informado"
+        col_j = " ".join(
+            f"{estrato} (N={total})"
+            for estrato, total in por_estrato.items()
+        ) or "No informado"
 
         materiales_presentes = {
             m for m in df_con_material["material"].dropna().unique()
             if m not in MATERIALES_EXCLUIDOS_DESCRIPCION
         }
-        orden_desc = ORDEN_DESCRIPCION + sorted([m for m in materiales_presentes if m not in ORDEN_DESCRIPCION])
-        col_l = ", ".join(nombre_material_descripcion(m) for m in orden_desc if m in materiales_presentes) or "No informado"
 
-        cronologias = {c for c in grupo["cronologia"].dropna().unique() if c not in {"", "No informado"}}
+        orden_desc = ORDEN_DESCRIPCION + sorted([
+            m for m in materiales_presentes
+            if m not in ORDEN_DESCRIPCION
+        ])
+
+        col_l = ", ".join(
+            nombre_material_descripcion(m)
+            for m in orden_desc
+            if m in materiales_presentes
+        ) or "No informado"
+
+        cronologias = {
+            c for c in grupo["cronologia"].dropna().unique()
+            if c not in {"", "No informado"}
+        }
+
         if cronologias == {"histórico", "subactual"}:
             col_m = "Histórico / Subactual"
         elif cronologias == {"histórico"}:
@@ -522,9 +663,15 @@ def resumen_por_grupo_df(df):
 
         # Frecuencia históricos: todo lo histórico separado, incluyendo misceláneo.
         por_material_hist = defaultdict(int)
+
         for _, r in historicos.iterrows():
             por_material_hist[r["material"]] += int(r["cantidad"])
-        orden_freq = ORDEN_FRECUENCIA + sorted([m for m in por_material_hist if m not in ORDEN_FRECUENCIA])
+
+        orden_freq = ORDEN_FRECUENCIA + sorted([
+            m for m in por_material_hist
+            if m not in ORDEN_FRECUENCIA
+        ])
+
         col_n = ", ".join(
             f"{nombre_material_frecuencia(m)} (N={por_material_hist[m]})"
             for m in orden_freq
@@ -545,7 +692,7 @@ def resumen_por_grupo_df(df):
             "Frecuencia históricos": col_n,
         })
 
-    return pd.DataFrame(resumenes)
+    return pd.DataFrame(resumenes, columns=COLUMNAS_RESUMEN)
 
 
 def validar_df(df, alertas_parser=None):
@@ -557,21 +704,28 @@ def validar_df(df, alertas_parser=None):
 
     for idx, r in df.iterrows():
         fila = idx + 1
+
         if r["fecha"] == "No informado":
             alertas.append(f"Fila editable {fila}: fecha no informada.")
+
         if r["unidad"] in {"", "No informado"}:
             alertas.append(f"Fila editable {fila}: unidad no informada.")
+
         if r["estrato"] == "No informado":
             alertas.append(f"Fila editable {fila}: estrato/capa no informado.")
+
         if r["cronologia"] == "No informado":
             alertas.append(f"Fila editable {fila}: cronología no informada.")
+
         if r["material"] != MATERIAL_SIN_MATERIAL and pd.isna(r["cantidad"]):
             alertas.append(f"Fila editable {fila}: cantidad no informada para material '{r['material']}'.")
+
         if bool(r["material_nuevo"]):
             alertas.append(f"Fila editable {fila}: material nuevo/no catastrado '{r['material']}'.")
 
     if not alertas:
         return pd.DataFrame({"Estado": ["Sin alertas"]})
+
     return pd.DataFrame({"Alerta": alertas})
 
 
@@ -579,22 +733,51 @@ def validar_df(df, alertas_parser=None):
 # EXPORTACIÓN
 # ==========================================================
 
+def aplicar_formato_excel(writer, nombre_hoja, wrap=True):
+    wb = writer.book
+    ws = wb[nombre_hoja]
+
+    header_fill = PatternFill("solid", fgColor="D9EAF7")
+    header_font = Font(bold=True)
+    align_header = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    align_body = Alignment(horizontal="left", vertical="center", wrap_text=wrap)
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = ws.dimensions
+
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = align_header
+
+    for row in ws.iter_rows(min_row=2):
+        for cell in row:
+            cell.alignment = align_body
+
+    for column_cells in ws.columns:
+        col_letter = get_column_letter(column_cells[0].column)
+        max_len = 0
+        for cell in column_cells:
+            if cell.value is not None:
+                max_len = max(max_len, len(str(cell.value)))
+        ws.column_dimensions[col_letter].width = min(max(max_len + 2, 14), 70)
+
+    for row in ws.iter_rows():
+        ws.row_dimensions[row[0].row].height = 35 if row[0].row == 1 else 45
+
+
 def crear_excel_en_memoria(df_resumen, df_detalle, df_alertas):
     output = BytesIO()
+
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_resumen.to_excel(writer, sheet_name="Para copiar", index=False)
         df_detalle.to_excel(writer, sheet_name="Detalle editable", index=False)
         df_alertas.to_excel(writer, sheet_name="Alertas", index=False)
-        wb = writer.book
-        for ws in wb.worksheets:
-            ws.freeze_panes = "A2"
-            for col in ws.columns:
-                max_len = 0
-                col_letter = col[0].column_letter
-                for cell in col:
-                    if cell.value is not None:
-                        max_len = max(max_len, len(str(cell.value)))
-                ws.column_dimensions[col_letter].width = min(max_len + 2, 70)
+
+        aplicar_formato_excel(writer, "Para copiar", wrap=True)
+        aplicar_formato_excel(writer, "Detalle editable", wrap=True)
+        aplicar_formato_excel(writer, "Alertas", wrap=True)
+
     output.seek(0)
     return output.getvalue()
 
@@ -603,12 +786,23 @@ def crear_respaldo_zip(texto_original, df_resumen, df_detalle, df_alertas):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     output = BytesIO()
     excel_bytes = crear_excel_en_memoria(df_resumen, df_detalle, df_alertas)
+
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as zip_file:
         zip_file.writestr(f"{timestamp}_reporte_para_copiar.xlsx", excel_bytes)
         zip_file.writestr(f"{timestamp}_texto_original.txt", texto_original)
-        zip_file.writestr(f"{timestamp}_resumen_para_copiar.csv", df_resumen.to_csv(index=False).encode("utf-8-sig"))
-        zip_file.writestr(f"{timestamp}_detalle_editable.csv", df_detalle.to_csv(index=False).encode("utf-8-sig"))
-        zip_file.writestr(f"{timestamp}_alertas.csv", df_alertas.to_csv(index=False).encode("utf-8-sig"))
+        zip_file.writestr(
+            f"{timestamp}_resumen_para_copiar.csv",
+            df_resumen.to_csv(index=False).encode("utf-8-sig")
+        )
+        zip_file.writestr(
+            f"{timestamp}_detalle_editable.csv",
+            df_detalle.to_csv(index=False).encode("utf-8-sig")
+        )
+        zip_file.writestr(
+            f"{timestamp}_alertas.csv",
+            df_alertas.to_csv(index=False).encode("utf-8-sig")
+        )
+
     output.seek(0)
     return output.getvalue(), timestamp
 
@@ -619,24 +813,63 @@ def crear_respaldo_zip(texto_original, df_resumen, df_detalle, df_alertas):
 
 if "texto_reportes" not in st.session_state:
     st.session_state["texto_reportes"] = ""
+
 if "resultado_generado" not in st.session_state:
     st.session_state["resultado_generado"] = False
+
 if "df_extraido" not in st.session_state:
-    st.session_state["df_extraido"] = pd.DataFrame()
+    st.session_state["df_extraido"] = pd.DataFrame(columns=COLUMNAS_EDITOR)
+
 if "alertas_parser" not in st.session_state:
     st.session_state["alertas_parser"] = []
 
 
-def borrar_todo():
+def limpiar_caja_texto():
+    st.session_state["texto_reportes"] = ""
+
+
+def limpiar_todo():
     st.session_state["texto_reportes"] = ""
     st.session_state["resultado_generado"] = False
-    st.session_state["df_extraido"] = pd.DataFrame()
+    st.session_state["df_extraido"] = pd.DataFrame(columns=COLUMNAS_EDITOR)
     st.session_state["alertas_parser"] = []
 
 
+def agregar_reporte_ejemplo():
+    actual = st.session_state.get("texto_reportes", "")
+    if actual.strip():
+        st.session_state["texto_reportes"] = actual.strip() + "\n\n" + REPORTE_EJEMPLO
+    else:
+        st.session_state["texto_reportes"] = REPORTE_EJEMPLO
+
+
+with st.expander("ℹ️ Instrucciones de uso", expanded=True):
+    st.markdown(
+        """
+        **Esta app permite:**
+
+        - Extraer información desde reportes enviados por WhatsApp.
+        - Reconocer fecha, unidad, nivel, capa/estrato, cronología, materiales y cantidades.
+        - Detectar niveles con `Histórico: 0` o `Subactual: 0` sin perderlos.
+        - Identificar materiales nuevos no catastrados.
+        - Editar manualmente los datos antes de exportar.
+        - Descargar un Excel listo para copiar y un respaldo completo ZIP.
+
+        **Flujo recomendado:**
+
+        1. Pega uno o varios reportes.
+        2. Presiona **Procesar reportes**.
+        3. Revisa la tabla editable y corrige faltantes.
+        4. Verifica alertas.
+        5. Descarga el Excel o el respaldo completo.
+        """
+    )
+
+st.subheader("1. Ingreso de reportes")
+
 st.text_area(
     "Pega aquí uno o varios reportes de WhatsApp",
-    height=380,
+    height=360,
     key="texto_reportes",
     placeholder="""Ejemplo:
 [28/5, 16:10] Persona: Unidad 7c
@@ -650,14 +883,23 @@ Subactual: 0
 Histórico: 0"""
 )
 
-col1, col2 = st.columns([1, 1])
+col1, col2, col3, col4 = st.columns([1.1, 1, 1, 1])
+
 with col1:
     procesar = st.button("Procesar reportes", type="primary")
+
 with col2:
-    st.button("Borrar resultados", on_click=borrar_todo)
+    st.button("Limpiar caja de texto", on_click=limpiar_caja_texto)
+
+with col3:
+    st.button("Agregar reporte ejemplo", on_click=agregar_reporte_ejemplo)
+
+with col4:
+    st.button("Limpiar todo", on_click=limpiar_todo)
 
 if procesar:
     texto = st.session_state["texto_reportes"]
+
     if not texto.strip():
         st.warning("Debes pegar al menos un reporte.")
     else:
@@ -667,18 +909,19 @@ if procesar:
         st.session_state["resultado_generado"] = True
 
 if st.session_state["resultado_generado"]:
-    st.subheader("1. Revisar y editar datos extraídos")
+    st.subheader("2. Revisar y editar datos extraídos")
     st.info(
         "Puedes corregir campos, agregar filas nuevas o eliminar filas antes de descargar. "
         "Si falta información, puedes escribirla manualmente o dejarla como 'No informado'."
     )
 
     df_base = st.session_state["df_extraido"].copy()
-    columnas_editor = ["fecha", "unidad", "nivel", "estrato", "cronologia", "material", "cantidad", "material_nuevo", "linea_original"]
-    for col in columnas_editor:
+
+    for col in COLUMNAS_EDITOR:
         if col not in df_base.columns:
             df_base[col] = None
-    df_base = df_base[columnas_editor]
+
+    df_base = df_base[COLUMNAS_EDITOR]
 
     df_editado = st.data_editor(
         df_base,
@@ -689,7 +932,10 @@ if st.session_state["resultado_generado"]:
             "unidad": st.column_config.TextColumn("Unidad"),
             "nivel": st.column_config.NumberColumn("Nivel", step=1),
             "estrato": st.column_config.TextColumn("Estrato/Capa"),
-            "cronologia": st.column_config.SelectboxColumn("Cronología", options=["histórico", "subactual", "No informado"]),
+            "cronologia": st.column_config.SelectboxColumn(
+                "Cronología",
+                options=["histórico", "subactual", "No informado"]
+            ),
             "material": st.column_config.TextColumn("Material"),
             "cantidad": st.column_config.NumberColumn("Cantidad", step=1),
             "material_nuevo": st.column_config.CheckboxColumn("Material nuevo"),
@@ -702,7 +948,18 @@ if st.session_state["resultado_generado"]:
     df_resumen = resumen_por_grupo_df(df_editado_limpio)
     df_alertas = validar_df(df_editado_limpio, st.session_state.get("alertas_parser", []))
 
-    st.subheader("2. Reporte para copiar")
+    st.subheader("3. Alertas y validaciones")
+
+    if "Estado" in df_alertas.columns:
+        st.success("Sin alertas.")
+    else:
+        st.warning("Existen alertas o campos que requieren revisión.")
+
+    with st.expander("Ver alertas y validaciones", expanded=("Alerta" in df_alertas.columns)):
+        st.dataframe(df_alertas, use_container_width=True)
+
+    st.subheader("4. Reporte para copiar")
+
     if df_resumen.empty:
         st.error("No se pudo generar resumen. Revisa o completa la tabla editable.")
     else:
@@ -732,6 +989,3 @@ if st.session_state["resultado_generado"]:
                 file_name=f"respaldo_reporte_{timestamp}.zip",
                 mime="application/zip"
             )
-
-    with st.expander("Ver alertas y validaciones"):
-        st.dataframe(df_alertas, use_container_width=True)
