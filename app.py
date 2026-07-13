@@ -13,20 +13,21 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 
+# ==========================================================
+# CONFIGURACIÓN GENERAL
+# ==========================================================
+
 st.set_page_config(
     page_title="Reporte WhatsApp Arqueología",
     page_icon="📋",
     layout="wide",
 )
 
-
 MATERIAL_MAP = {
     "loza": "loza",
     "lozas": "loza",
     "ceramica": "cerámica",
     "ceramicas": "cerámica",
-    "cerámica": "cerámica",
-    "cerámicas": "cerámica",
     "vidrio": "vidrio",
     "vidrios": "vidrio",
     "metal": "metal",
@@ -35,16 +36,10 @@ MATERIAL_MAP = {
     "osteofaunas": "osteofauna",
     "plastico": "plástico",
     "plasticos": "plástico",
-    "plástico": "plástico",
-    "plásticos": "plástico",
     "malacologico": "malacológico",
     "malacologicos": "malacológico",
-    "malacológico": "malacológico",
-    "malacológicos": "malacológico",
     "miscelaneo": "misceláneo",
     "miscelaneos": "misceláneo",
-    "misceláneo": "misceláneo",
-    "misceláneos": "misceláneo",
     "baldosa": "baldosa",
     "baldosas": "baldosa",
 }
@@ -75,6 +70,12 @@ ORDEN_CRONOLOGIAS = [
     "subactual",
 ]
 
+CRONOLOGIAS_OBLIGATORIAS = [
+    "subactual",
+    "histórico",
+    "prehispánico",
+]
+
 MATERIAL_SIN_MATERIAL = "sin material"
 
 MATERIALES_EXCLUIDOS_DESCRIPCION = {
@@ -95,6 +96,14 @@ COLUMNAS_EDITOR = [
     "linea_original",
 ]
 
+COLUMNAS_COMENTARIOS = [
+    "Fecha",
+    "Remitente",
+    "Unidad",
+    "Nivel",
+    "Comentario",
+]
+
 COLUMNAS_RESUMEN = [
     "Fecha",
     "Unidad",
@@ -110,47 +119,182 @@ COLUMNAS_RESUMEN = [
     "Frecuencia prehispánicos",
 ]
 
-REPORTE_TIPO = """[dd/mm, hh:mm] Nombre:
-dd/mm/aa
+REPORTE_TIPO = """[dd/mm, hh:mm] Nombre: dd/mm/aaaa
 
-Unidad:
-
-N__, capa __
-
-Subactual: 0
-
-Histórico:
-
-Prehispánico:
-"""
-
-REPORTE_EJEMPLO = """[10/7, 6:43 p.m.] Valentina: 10/07/26
+Equipo y comentario breve de la jornada.
 
 Unidad 18-4
 
-N38, capa C
+Nivel 38, capa C
 
 Subactual: 0
 
-Histórico:
+Histórico: 3
 -1 osteofauna
 -2 lozas
--1 metal
 
-Prehispánico:
--1 cerámica
+Prehispánico: 0
+"""
 
-N39, capa C
+REPORTE_EJEMPLO = """[10/7, 6:43 p.m.] Nombre: 10/07/2026
+
+Equipo Vale y Clara.
+Jornada inicia a las 9:10 hrs.
+
+Unidad 18-4
+
+Nivel 38, capa C
 
 Subactual: 0
 
-Histórico:
--11 lozas
--15 vidrios
--10 osteofaunas
+Histórico: 3
+-1 osteofauna
+-2 lozas
 
-Pre-hispanico:
--4 cerámicas
+Prehispánico: 1
+-1 cerámica
+"""
+
+FORMATO_REPORTE_TXT = """INSTRUCTIVO PARA EL ENVÍO DE REPORTES ARQUEOLÓGICOS
+===================================================
+
+OBJETIVO
+-------
+Este formato permite que la aplicación reconozca correctamente cada unidad,
+nivel, cronología, material y cantidad. Seguir la estructura evita registros
+incompletos, alertas innecesarias y correcciones manuales en el Excel.
+
+IMPORTANTE
+----------
+El reporte se procesa línea por línea. Por esa razón, cada encabezado y cada
+material debe escribirse en una línea independiente. No se deben omitir
+cronologías: cuando una categoría no tenga materiales, debe informarse con 0.
+
+ORDEN OBLIGATORIO POR CADA NIVEL
+--------------------------------
+1. Unidad
+2. Nivel y capa
+3. Subactual
+4. Histórico
+5. Prehispánico
+
+FORMATO TIPO
+------------
+[10/7, 6:43 p.m.] Nombre: 10/07/2026
+
+Equipo y comentario breve de la jornada.
+
+Unidad 18-4
+
+Nivel 38, capa C
+
+Subactual: 0
+
+Histórico: 3
+-1 osteofauna
+-2 lozas
+
+Prehispánico: 1
+-1 cerámica
+
+REGLAS DE ENVÍO
+---------------
+1. Escribir la unidad como:
+   Unidad 18
+   Unidad 18-4
+   Unidad 7a
+   Unidad 9-r41
+
+2. Escribir el nivel y la capa como:
+   Nivel 38, capa C
+   También se acepta: N38, capa C
+
+3. Incluir siempre las tres cronologías en este orden:
+   Subactual
+   Histórico
+   Prehispánico
+
+4. Informar el total junto al encabezado:
+   Subactual: 0
+   Histórico: 3
+   Prehispánico: 1
+
+5. Si no hay materiales en una cronología, escribir 0. No dejar el campo vacío:
+   Correcto: Subactual: 0
+   Incorrecto: Subactual:
+   Incorrecto: omitir Subactual
+
+6. Si el total es mayor que 0, detallar cada material en una línea:
+   Histórico: 4
+   -2 lozas
+   -1 vidrio
+   -1 cerámica
+
+7. La suma de los materiales debe coincidir con el total declarado.
+   En el ejemplo anterior: 2 + 1 + 1 = 4.
+
+8. Usar idealmente el formato:
+   -1 loza
+   -3 vidrios
+   -1 osteofauna
+
+   También se acepta:
+   - Loza: 1
+   1 loza
+
+9. Las observaciones de un material pueden escribirse después de una coma:
+   -1 osteofauna, fragmento con huella de corte manual
+
+10. Los comentarios generales de jornada deben ir después del encabezado y
+    antes de la línea Unidad. Pueden incluir horarios, nombres y actividades.
+
+11. Para más de una unidad, repetir el bloque completo desde “Unidad”.
+
+12. No escribir unidad, nivel, cronología y materiales en una misma línea.
+
+13. No reemplazar los nombres Subactual, Histórico o Prehispánico por nombres
+    personales o abreviaturas.
+
+14. Si aparece un material no habitual, escribirlo de todos modos. La
+    aplicación lo conservará y lo marcará para revisión.
+
+EJEMPLO CON DOS NIVELES
+-----------------------
+[10/7, 6:43 p.m.] Nombre: 10/07/2026
+
+Equipo Vale y Clara.
+Jornada sin novedades.
+
+Unidad 18-4
+
+Nivel 38, capa C
+
+Subactual: 0
+
+Histórico: 3
+-1 osteofauna
+-2 lozas
+
+Prehispánico: 1
+-1 cerámica
+
+Nivel 39, capa C
+
+Subactual: 0
+
+Histórico: 6
+-4 lozas
+-2 vidrios
+
+Prehispánico: 0
+
+¿POR QUÉ ES IMPORTANTE RESPETAR ESTE FORMATO?
+---------------------------------------------
+Cuando una cronología se omite, la aplicación no puede saber si realmente no
+hubo materiales o si el dato quedó sin informar. Cuando los totales no
+coinciden con el detalle, el Excel puede contener información inconsistente.
+Seguir un único formato permite comparar jornadas, reducir errores y mantener
+un registro uniforme para todo el equipo.
 """
 
 
@@ -167,48 +311,39 @@ class Registro:
     linea_original: str = ""
 
 
-def strip_accents_lower(text):
-    text = str(text).strip().lower()
+# ==========================================================
+# UTILIDADES DE NORMALIZACIÓN
+# ==========================================================
+
+def sin_acentos_minusculas(texto):
+    texto = str(texto).strip().lower()
     return "".join(
-        char
-        for char in unicodedata.normalize("NFD", text)
-        if unicodedata.category(char) != "Mn"
+        caracter
+        for caracter in unicodedata.normalize("NFD", texto)
+        if unicodedata.category(caracter) != "Mn"
     )
 
 
-def limpiar_texto_material(raw):
-    key = strip_accents_lower(raw)
-    key = re.sub(r"[^a-zñáéíóúü ]", "", key).strip()
-    return re.sub(r"\s+", " ", key)
+def limpiar_material(texto):
+    texto = sin_acentos_minusculas(texto)
+    texto = re.sub(r"[^a-zñ ]", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
 
 
-def normalizar_material(raw):
-    return MATERIAL_MAP.get(limpiar_texto_material(raw))
+def normalizar_material(texto):
+    clave = limpiar_material(texto)
 
+    if not clave:
+        return None, False
 
-def normalizar_material_desconocido(raw):
-    key = limpiar_texto_material(raw)
-
-    if not key:
-        return None
-
-    # Evita convertir frases narrativas largas en materiales.
-    if len(key.split()) > 3:
-        return None
-
-    return key
-
-
-def material_con_alerta(raw):
-    material = normalizar_material(raw)
+    material = MATERIAL_MAP.get(clave)
 
     if material:
         return material, False
 
-    material_nuevo = normalizar_material_desconocido(raw)
-
-    if material_nuevo:
-        return material_nuevo, True
+    # Los materiales nuevos se conservan, pero no se aceptan frases largas.
+    if len(clave.split()) <= 3:
+        return clave, True
 
     return None, False
 
@@ -216,10 +351,68 @@ def material_con_alerta(raw):
 def normalizar_fecha(dia, mes, anio=None):
     if anio is None:
         anio = "2026"
-    elif len(str(anio)) == 2:
-        anio = "20" + str(anio)
+    else:
+        anio = str(anio)
+        if len(anio) == 2:
+            anio = "20" + anio
 
     return f"{int(dia):02d}-{int(mes):02d}-{anio}"
+
+
+def extraer_fecha_linea(linea):
+    """Reconoce únicamente fechas que ocupan la línea completa."""
+    linea = linea.strip()
+
+    # Con barra se acepta dd/mm o dd/mm/aaaa.
+    match = re.fullmatch(
+        r"(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?",
+        linea,
+    )
+
+    if match:
+        return normalizar_fecha(
+            match.group(1),
+            match.group(2),
+            match.group(3),
+        )
+
+    # Con guion se exige año para no confundir 18-4 con una fecha.
+    match = re.fullmatch(
+        r"(\d{1,2})-(\d{1,2})-(\d{2,4})",
+        linea,
+    )
+
+    if match:
+        return normalizar_fecha(
+            match.group(1),
+            match.group(2),
+            match.group(3),
+        )
+
+    return None
+
+
+def extraer_fecha_en_texto(texto):
+    """Busca una fecha completa dentro de una alerta como Conteo pendiente."""
+    match = re.search(
+        r"(?<!\d)(\d{1,2})/(\d{1,2})/(\d{2,4})(?!\d)",
+        texto,
+    )
+
+    if not match:
+        match = re.search(
+            r"(?<!\d)(\d{1,2})-(\d{1,2})-(\d{2,4})(?!\d)",
+            texto,
+        )
+
+    if not match:
+        return None
+
+    return normalizar_fecha(
+        match.group(1),
+        match.group(2),
+        match.group(3),
+    )
 
 
 def nivel_a_profundidad_inicio(nivel):
@@ -259,384 +452,465 @@ def nombre_cronologia(cronologia):
     return nombres.get(cronologia, str(cronologia).capitalize())
 
 
-def preparar_texto(texto):
+# ==========================================================
+# RECONOCIMIENTO ESTRICTO DE LÍNEAS
+# ==========================================================
+
+def preparar_lineas(texto):
+    texto = texto.replace("\u202f", " ")
+    texto = texto.replace("\u2060", "")
     texto = texto.replace("•", "-").replace("·", "-")
     texto = texto.replace("–", "-").replace("—", "-")
-    texto = texto.replace("\u2060", "")
-    texto = texto.replace("\u202f", " ")
 
-    # Se usa un token temporal para evitar que la fecha del encabezado
-    # de WhatsApp sea procesada otra vez por la regla de fecha explícita.
-    def reemplazar_encabezado_whatsapp(match):
-        dia = int(match.group(1))
-        mes = int(match.group(2))
-        return f"\n__FWH_2026_{mes:02d}_{dia:02d}__\n"
+    return [
+        re.sub(r"\s+", " ", linea.strip())
+        for linea in texto.splitlines()
+        if linea.strip()
+    ]
 
-    texto = re.sub(
-        r"\[(\d{1,2})/(\d{1,2}),[^\]]+\]\s*([^:]+):",
-        reemplazar_encabezado_whatsapp,
-        texto,
+
+def reconocer_encabezado_whatsapp(linea):
+    match = re.fullmatch(
+        r"\[(\d{1,2})/(\d{1,2}),[^\]]+\]\s*([^:]+):\s*(.*)",
+        linea,
     )
 
-    # Fecha explícita: 18-05-26 / 18/05 / 18/05/2026.
-    texto = re.sub(
-        r"(?<!\d)(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?(?!\d)",
-        lambda match: (
-            "\nFECHA_REPORTE "
-            + normalizar_fecha(
-                match.group(1),
-                match.group(2),
-                match.group(3),
+    if not match:
+        return None
+
+    fecha = normalizar_fecha(match.group(1), match.group(2))
+    remitente = match.group(3).strip() or "No informado"
+    contenido_final = match.group(4).strip()
+
+    # Una fecha escrita después del nombre tiene prioridad por incluir año.
+    fecha_final = extraer_fecha_linea(contenido_final)
+    if fecha_final:
+        fecha = fecha_final
+        contenido_final = ""
+
+    return {
+        "fecha": fecha,
+        "remitente": remitente,
+        "contenido_final": contenido_final,
+    }
+
+
+def reconocer_unidad(linea):
+    # Formato recomendado: Unidad 18, Unidad 18-4, Unidad 9-r41, Unidad 7a.
+    match = re.fullmatch(
+        r"Unidad\s+([0-9]+(?:-[A-Za-z0-9]+)?[A-Za-z]?)",
+        linea,
+        flags=re.I,
+    )
+
+    if match:
+        return match.group(1).lower()
+
+    # Compatibilidad con reportes antiguos: 9-r41, 8-re o 7a como línea completa.
+    # No se acepta 18-4 sin la palabra Unidad para evitar confundirlo con una fecha/rango.
+    match = re.fullmatch(
+        r"([0-9]+-[A-Za-z][A-Za-z0-9]*|[0-9]+[A-Za-z])",
+        linea,
+        flags=re.I,
+    )
+
+    if match:
+        return match.group(1).lower()
+
+    return None
+
+
+def reconocer_nivel(linea):
+    patrones_con_estrato = [
+        r"(?:N|Nivel)\s*(\d{1,3})\s*,\s*Capa\s*([A-Za-z]{1,4})",
+        r"(?:N|Nivel)\s*(\d{1,3})\s*,\s*([A-Za-z]{1,4})",
+        r"(\d{1,3})\s*,\s*([A-Za-z]{1,4})",
+    ]
+
+    for patron in patrones_con_estrato:
+        match = re.fullmatch(patron, linea, flags=re.I)
+        if match:
+            return int(match.group(1)), match.group(2).upper(), None
+
+    match = re.fullmatch(
+        r"(?:N|Nivel)\s*(\d{1,3})",
+        linea,
+        flags=re.I,
+    )
+
+    if match:
+        return int(match.group(1)), None, "Estrato/capa no informado"
+
+    return None
+
+
+def reconocer_cronologia(linea):
+    texto = linea.strip().lstrip("- ").strip()
+    texto_sin_acentos = sin_acentos_minusculas(texto)
+
+    patrones = [
+        (
+            "histórico",
+            r"(?:material\s+arqueologico|historico)",
+        ),
+        (
+            "prehispánico",
+            r"pre[\s-]*hispanico",
+        ),
+        (
+            "subactual",
+            r"(?:material\s+subactual|subactual)",
+        ),
+    ]
+
+    sufijo = (
+        r"\s*(?:"
+        r":\s*(\d+)?"
+        r"|=\s*(\d+)"
+        r"|\(\s*n\s*=\s*(\d+)\s*\)"
+        r"|\s+(\d+)"
+        r")?\s*"
+    )
+
+    for cronologia, patron in patrones:
+        match = re.fullmatch(patron + sufijo, texto_sin_acentos)
+        if match:
+            cantidades = [
+                grupo
+                for grupo in match.groups()
+                if grupo is not None
+            ]
+            cantidad_declarada = (
+                int(cantidades[-1]) if cantidades else None
             )
-            + "\n"
-        ),
-        texto,
-    )
+            return cronologia, cantidad_declarada
 
-    texto = re.sub(
-        r"__FWH_(\d{4})_(\d{2})_(\d{2})__",
-        lambda match: (
-            f"FECHA_WHATSAPP "
-            f"{match.group(3)}-{match.group(2)}-{match.group(1)}"
-        ),
-        texto,
-    )
-
-    # Unidad explícita.
-    texto = re.sub(
-        r"\bUnidad\s+([0-9]+-[a-z]+[0-9]*|[0-9]+[a-z]?)\b",
-        r"\nUNIDAD \1\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Unidad sin la palabra "Unidad": 9-r41 / 8-re / 7a.
-    texto = re.sub(
-        r"(?<!NIVEL\s)(?<!Nivel\s)(?<!N)(?<!N\s)"
-        r"\b([0-9]+-[a-z]+[0-9]*|[0-9]+[a-z])\b",
-        r"\nUNIDAD \1\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Nivel 31 - Capa G / Nivel 45, Capa G.
-    texto = re.sub(
-        r"\bNivel\s+(\d{1,2})\s*[-:.,]?\s*Capa\s*([A-Za-z]{1,4})\b",
-        r"\nNIVEL \1, \2\n",
-        texto,
-        flags=re.I,
-    )
-
-    # N37, capa C.
-    texto = re.sub(
-        r"\bN\s*(\d{1,2})\s*,\s*Capa\s*([A-Za-z]{1,4})\b",
-        r"\nNIVEL \1, \2\n",
-        texto,
-        flags=re.I,
-    )
-
-    # N31, G.
-    texto = re.sub(
-        r"\bN\s*(\d{1,2})\s*,\s*([A-Za-z]{1,4})\b",
-        r"\nNIVEL \1, \2\n",
-        texto,
-        flags=re.I,
-    )
-
-    # 1, RC / 4, A / 11, RD.
-    texto = re.sub(
-        r"(?<!\d)\b(\d{1,2})\s*,\s*([A-Za-z]{1,4})(?![A-Za-z])",
-        r"\nNIVEL \1, \2\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Nivel sin capa: Nivel 37, queda picado.
-    texto = re.sub(
-        r"\bNivel\s+(\d{1,2})\b"
-        r"(?!\s*,)(?!\s*[-:.,]?\s*Capa)",
-        r"\nNIVEL \1\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Histórico y Material arqueológico.
-    texto = re.sub(
-        r"(?:^|\s)-?\s*"
-        r"(Material arqueológico|Material arqueologico|Histórico|Historico)"
-        r"\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+|\d+)?\s*:?",
-        r"\nCRONO histórico\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Prehispánico y variantes.
-    texto = re.sub(
-        r"(?:^|\s)-?\s*"
-        r"(Pre[\s-]*hisp[aá]nico)"
-        r"\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+|\d+)?\s*:?",
-        r"\nCRONO prehispánico\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Subactual y Material subactual.
-    texto = re.sub(
-        r"(?:^|\s)-?\s*"
-        r"(Material subactual|Subactual)"
-        r"\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+|\d+)?\s*:?",
-        r"\nCRONO subactual\n",
-        texto,
-        flags=re.I,
-    )
-
-    # Separa ítems con guion incluso cuando vienen como "-1 loza".
-    texto = re.sub(r"\s*-\s*(?=\d|[A-Za-zÁÉÍÓÚÜÑáéíóúüñ])", r"\n- ", texto)
-
-    lineas = []
-
-    for linea in texto.splitlines():
-        linea = linea.strip()
-
-        if linea:
-            lineas.append(re.sub(r"\s+", " ", linea))
-
-    return lineas
+    return None
 
 
-def extraer_items_materiales(linea):
-    original = linea
-    linea = linea.strip().lstrip("- ").strip()
-    resultados = []
+def quitar_vineta(linea):
+    return re.sub(r"^[\-]\s*", "", linea.strip()).strip()
 
-    # material: número / material:
-    match = re.match(
-        r"^([a-záéíóúñü ]+?)\s*:\s*(\d+)?\s*$",
-        linea,
-        flags=re.I,
-    )
 
-    if match:
-        material, nuevo = material_con_alerta(match.group(1))
+def reconocer_materiales(linea):
+    """
+    Reconoce materiales únicamente cuando la línea completa tiene formato de material.
 
-        if material:
-            cantidad = int(match.group(2)) if match.group(2) else None
-            return [(material, cantidad, original, nuevo)]
+    Ejemplos:
+    -1 loza
+    8 lozas
+    - Osteofauna: 1, observación
+    loza: 2
+    loza 2
+    """
+    original = linea.strip()
+    texto = quitar_vineta(original)
 
-    # material (n)
-    match = re.match(
-        r"^([a-záéíóúñü ]+?)\s*\((\d+)\)",
-        linea,
-        flags=re.I,
-    )
-
-    if match:
-        material, nuevo = material_con_alerta(match.group(1))
-
-        if material:
-            return [(material, int(match.group(2)), original, nuevo)]
-
-    # material número: loza 7.
-    match = re.match(
-        r"^([a-záéíóúñü ]+?)\s+(\d+)\b",
-        linea,
-        flags=re.I,
-    )
-
-    if match:
-        material, nuevo = material_con_alerta(match.group(1))
-
-        if material:
-            return [(material, int(match.group(2)), original, nuevo)]
-
-    # número material / varios en una línea: 1 loza, 3 vidrios.
-    for cantidad, material_raw in re.findall(
-        r"(\d+)\s+([a-záéíóúñü]+)",
-        linea,
-        flags=re.I,
+    # Varios pares en una misma línea: 1 loza, 3 vidrios.
+    segmentos = [segmento.strip() for segmento in re.split(r"[,;]", texto)]
+    if len(segmentos) > 1 and all(
+        re.fullmatch(
+            r"\d+\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+",
+            segmento,
+        )
+        for segmento in segmentos
     ):
-        material, nuevo = material_con_alerta(material_raw)
-
-        if material:
-            resultados.append(
-                (material, int(cantidad), original, nuevo)
+        resultados = []
+        for segmento in segmentos:
+            match = re.fullmatch(
+                r"(\d+)\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)",
+                segmento,
             )
+            material, nuevo = normalizar_material(match.group(2))
+            if material:
+                resultados.append(
+                    (
+                        material,
+                        int(match.group(1)),
+                        nuevo,
+                        original,
+                    )
+                )
+        return resultados
 
-    return resultados
+    # 1 loza / 8 lozas, con observación opcional después de coma o punto y coma.
+    match = re.fullmatch(
+        r"(\d+)\s+([A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{1,40}?)"
+        r"(?:\s*[,;]\s*(.+))?",
+        texto,
+    )
 
+    if match:
+        material, nuevo = normalizar_material(match.group(2))
+        if material:
+            return [
+                (
+                    material,
+                    int(match.group(1)),
+                    nuevo,
+                    original,
+                )
+            ]
+
+    # Osteofauna: 1, observación / loza: 2.
+    match = re.fullmatch(
+        r"([A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{1,40}?)\s*:\s*(\d+)"
+        r"(?:\s*[,;]\s*(.+))?",
+        texto,
+    )
+
+    if match:
+        material, nuevo = normalizar_material(match.group(1))
+        if material:
+            return [
+                (
+                    material,
+                    int(match.group(2)),
+                    nuevo,
+                    original,
+                )
+            ]
+
+    # loza 2.
+    match = re.fullmatch(
+        r"([A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{1,40}?)\s+(\d+)",
+        texto,
+    )
+
+    if match:
+        material, nuevo = normalizar_material(match.group(1))
+        if material:
+            return [
+                (
+                    material,
+                    int(match.group(2)),
+                    nuevo,
+                    original,
+                )
+            ]
+
+    # material: sin cantidad.
+    match = re.fullmatch(
+        r"([A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{1,40}?)\s*:\s*",
+        texto,
+    )
+
+    if match:
+        material, nuevo = normalizar_material(match.group(1))
+        if material:
+            return [
+                (
+                    material,
+                    None,
+                    nuevo,
+                    original,
+                )
+            ]
+
+    return []
+
+
+def agregar_comentario(
+    comentarios,
+    fecha,
+    remitente,
+    unidad,
+    nivel,
+    texto,
+):
+    texto = str(texto).strip()
+
+    if not texto:
+        return
+
+    registro = {
+        "Fecha": fecha or "No informado",
+        "Remitente": remitente or "No informado",
+        "Unidad": unidad or "No informado",
+        "Nivel": nivel if nivel is not None else "No informado",
+        "Comentario": texto,
+    }
+
+    if registro not in comentarios:
+        comentarios.append(registro)
+
+
+# ==========================================================
+# PARSER PRINCIPAL: LÓGICA LÍNEA POR LÍNEA
+# ==========================================================
 
 def parsear_todo(texto):
-    lineas = preparar_texto(texto)
+    lineas = preparar_lineas(texto)
 
     registros = []
     alertas = []
+    comentarios = []
     cronologias_declaradas = []
 
     fecha_actual = None
-    fecha_whatsapp = None
+    remitente_actual = None
     unidad_actual = None
     nivel_actual = None
     estrato_actual = None
     cronologia_actual = None
 
     for linea in lineas:
-        if linea.startswith("FECHA_WHATSAPP"):
-            fecha_whatsapp = linea.replace(
-                "FECHA_WHATSAPP",
-                "",
-            ).strip()
+        encabezado = reconocer_encabezado_whatsapp(linea)
 
-            # Cada mensaje nuevo reinicia la fecha de contexto.
-            fecha_actual = fecha_whatsapp
+        if encabezado:
+            fecha_actual = encabezado["fecha"]
+            remitente_actual = encabezado["remitente"]
+            unidad_actual = None
+            nivel_actual = None
+            estrato_actual = None
+            cronologia_actual = None
+
+            if encabezado["contenido_final"]:
+                agregar_comentario(
+                    comentarios,
+                    fecha_actual,
+                    remitente_actual,
+                    unidad_actual,
+                    nivel_actual,
+                    encabezado["contenido_final"],
+                )
             continue
 
-        if linea.startswith("FECHA_REPORTE"):
-            fecha_actual = linea.replace(
-                "FECHA_REPORTE",
-                "",
-            ).strip()
+        fecha_linea = extraer_fecha_linea(linea)
+
+        if fecha_linea:
+            fecha_actual = fecha_linea
             continue
 
-        if linea.startswith("UNIDAD"):
-            unidad_actual = linea.replace(
-                "UNIDAD",
-                "",
-            ).strip().lower()
+        if sin_acentos_minusculas(linea).startswith("conteo pendiente"):
+            fecha_pendiente = extraer_fecha_en_texto(linea)
+            if fecha_pendiente:
+                fecha_actual = fecha_pendiente
 
+            alertas.append(
+                "Conteo pendiente: unidad "
+                f"{unidad_actual or 'No informado'}, nivel "
+                f"{nivel_actual if nivel_actual is not None else 'No informado'}"
+            )
+            continue
+
+        unidad = reconocer_unidad(linea)
+
+        if unidad:
+            unidad_actual = unidad
             nivel_actual = None
             estrato_actual = None
             cronologia_actual = None
             continue
 
-        if linea.startswith("NIVEL"):
-            resto = linea.replace("NIVEL", "").strip()
+        nivel = reconocer_nivel(linea)
 
-            match = re.match(
-                r"(\d{1,2})\s*,\s*([A-Za-z]{1,4})",
-                resto,
-            )
+        if nivel:
+            nivel_actual, estrato_actual, alerta_nivel = nivel
+            cronologia_actual = None
 
-            if match:
-                nivel_actual = int(match.group(1))
-                estrato_actual = match.group(2).upper()
-                cronologia_actual = None
-            else:
-                match = re.match(r"(\d{1,2})", resto)
+            if unidad_actual is None:
+                alertas.append(
+                    f"Nivel {nivel_actual} sin unidad informada."
+                )
 
-                if match:
-                    nivel_actual = int(match.group(1))
-                    estrato_actual = None
-                    cronologia_actual = None
-
-                    alertas.append(
-                        f"Estrato pendiente: unidad "
-                        f"{unidad_actual or 'No informado'}, "
-                        f"nivel {nivel_actual}"
-                    )
-
+            if alerta_nivel:
+                alertas.append(
+                    f"{alerta_nivel}: unidad "
+                    f"{unidad_actual or 'No informado'}, "
+                    f"nivel {nivel_actual}"
+                )
             continue
 
-        if linea.startswith("CRONO"):
-            cronologia_actual = linea.replace(
-                "CRONO",
-                "",
-            ).strip().lower()
+        cronologia = reconocer_cronologia(linea)
+
+        if cronologia:
+            cronologia_actual, cantidad_declarada = cronologia
 
             if unidad_actual is None or nivel_actual is None:
                 alertas.append(
-                    f"Cronología sin unidad/nivel: {linea}"
+                    f"Cronología {nombre_cronologia(cronologia_actual)} "
+                    "sin unidad o nivel informado."
                 )
-            else:
-                cronologias_declaradas.append(
-                    {
-                        "fecha": (
-                            fecha_actual
-                            or fecha_whatsapp
-                            or "No informado"
-                        ),
-                        "unidad": unidad_actual or "No informado",
-                        "nivel": nivel_actual,
-                        "estrato": estrato_actual,
-                        "cronologia": cronologia_actual,
-                    }
-                )
+                continue
 
+            cronologias_declaradas.append(
+                {
+                    "fecha": fecha_actual or "No informado",
+                    "unidad": unidad_actual,
+                    "nivel": nivel_actual,
+                    "estrato": estrato_actual,
+                    "cronologia": cronologia_actual,
+                    "cantidad_declarada": cantidad_declarada,
+                }
+            )
             continue
 
-        items = extraer_items_materiales(linea)
+        materiales = reconocer_materiales(linea)
 
-        if items:
-            for (
-                material,
-                cantidad,
-                original,
-                material_nuevo,
-            ) in items:
-                unidad_registro = unidad_actual or "No informado"
-
+        if materiales and cronologia_actual is not None:
+            for material, cantidad, material_nuevo, original in materiales:
                 if unidad_actual is None:
                     alertas.append(
                         f"Material sin unidad: {original}"
                     )
+                    continue
 
                 if nivel_actual is None:
                     alertas.append(
-                        f"Material sin nivel: unidad "
-                        f"{unidad_registro}, {original}"
+                        f"Material sin nivel: unidad {unidad_actual}, {original}"
                     )
                     continue
 
-                cronologia_registro = cronologia_actual or "No informado"
-
-                if cronologia_actual is None:
-                    alertas.append(
-                        f"Material sin cronología: unidad "
-                        f"{unidad_registro}, nivel "
-                        f"{nivel_actual}, {original}"
-                    )
-
                 if cantidad is None:
                     alertas.append(
-                        f"Cantidad pendiente: unidad "
-                        f"{unidad_registro}, nivel "
-                        f"{nivel_actual}, {material}"
+                        f"Cantidad no informada: unidad {unidad_actual}, "
+                        f"nivel {nivel_actual}, material {material}"
                     )
 
                 if material_nuevo:
                     alertas.append(
-                        f"Material nuevo/no catastrado: "
-                        f"'{material}' en unidad "
-                        f"{unidad_registro}, nivel "
-                        f"{nivel_actual}"
+                        f"Material nuevo/no catastrado: '{material}' "
+                        f"en unidad {unidad_actual}, nivel {nivel_actual}"
                     )
 
                 registros.append(
                     Registro(
-                        fecha=(
-                            fecha_actual
-                            or fecha_whatsapp
-                            or "No informado"
-                        ),
-                        unidad=unidad_registro,
+                        fecha=fecha_actual or "No informado",
+                        unidad=unidad_actual,
                         nivel=nivel_actual,
                         estrato=estrato_actual,
-                        cronologia=cronologia_registro,
+                        cronologia=cronologia_actual,
                         material=material,
                         cantidad=cantidad,
                         material_nuevo=material_nuevo,
                         linea_original=original,
                     )
                 )
+            continue
 
-        if "conteo pendiente" in strip_accents_lower(linea):
+        # Una línea con viñeta dentro de una cronología parece material,
+        # pero no pudo interpretarse.
+        if cronologia_actual is not None and linea.lstrip().startswith("-"):
             alertas.append(
-                f"Conteo pendiente: unidad "
-                f"{unidad_actual or 'No informado'}, "
-                f"nivel {nivel_actual or 'No informado'}"
+                "Línea de material no reconocida: unidad "
+                f"{unidad_actual or 'No informado'}, nivel "
+                f"{nivel_actual if nivel_actual is not None else 'No informado'}, "
+                f"{linea}"
             )
+            continue
 
-    # Crea una fila placeholder para cronologías declaradas sin materiales:
-    # Histórico: 0, Prehispánico: 0 o Subactual: 0.
+        # Todo lo que no cumple una regla estructural se conserva como comentario.
+        agregar_comentario(
+            comentarios,
+            fecha_actual,
+            remitente_actual,
+            unidad_actual,
+            nivel_actual,
+            linea,
+        )
+
+    # Agrega una fila auxiliar para cronologías declaradas sin materiales.
     claves_con_material = {
         (
             registro.fecha,
@@ -673,8 +947,12 @@ def parsear_todo(texto):
                 )
             )
 
-    return registros, alertas
+    return registros, alertas, comentarios, cronologias_declaradas
 
+
+# ==========================================================
+# DATAFRAMES, VALIDACIONES Y RESUMEN
+# ==========================================================
 
 def registros_a_df(registros):
     if not registros:
@@ -683,6 +961,16 @@ def registros_a_df(registros):
     return pd.DataFrame(
         [vars(registro) for registro in registros]
     )[COLUMNAS_EDITOR]
+
+
+def comentarios_a_df(comentarios):
+    if not comentarios:
+        return pd.DataFrame(columns=COLUMNAS_COMENTARIOS)
+
+    return pd.DataFrame(
+        comentarios,
+        columns=COLUMNAS_COMENTARIOS,
+    )
 
 
 def limpiar_df_editado(df):
@@ -733,13 +1021,12 @@ def limpiar_df_editado(df):
         .str.strip()
     )
 
-    # Normaliza variantes editadas manualmente.
     df["cronologia"] = df["cronologia"].replace(
         {
             "historico": "histórico",
+            "prehispanico": "prehispánico",
             "pre-hispanico": "prehispánico",
             "pre-hispánico": "prehispánico",
-            "prehispanico": "prehispánico",
             "pre hispanico": "prehispánico",
             "pre hispánico": "prehispánico",
         }
@@ -871,7 +1158,6 @@ def resumen_por_grupo_df(df):
             & (grupo["cantidad"] > 0)
         ]
 
-        # Se mantiene la regla previa: Estratigrafía suma los históricos.
         por_estrato = defaultdict(int)
 
         estratos_declarados = [
@@ -889,13 +1175,13 @@ def resumen_por_grupo_df(df):
         for estrato in estratos_declarados:
             por_estrato[estrato] += 0
 
+        # Se mantiene la regla previa: estratigrafía suma materiales históricos.
         for _, fila in historicos.iterrows():
             estrato = (
                 fila["estrato"]
                 if fila["estrato"] != "No informado"
                 else "SIN ESTRATO"
             )
-
             por_estrato[estrato] += int(fila["cantidad"])
 
         col_estratigrafia = " ".join(
@@ -973,9 +1259,14 @@ def resumen_por_grupo_df(df):
     )
 
 
-def validar_df(df, alertas_parser=None):
+def validar_df(
+    df,
+    alertas_parser=None,
+    declaraciones=None,
+):
     df = limpiar_df_editado(df)
     alertas = list(alertas_parser or [])
+    declaraciones = list(declaraciones or [])
 
     if df.empty:
         return pd.DataFrame(
@@ -1001,14 +1292,12 @@ def validar_df(df, alertas_parser=None):
 
         if fila["estrato"] == "No informado":
             alertas.append(
-                f"Fila editable {numero_fila}: "
-                f"estrato/capa no informado."
+                f"Fila editable {numero_fila}: estrato/capa no informado."
             )
 
         if fila["cronologia"] == "No informado":
             alertas.append(
-                f"Fila editable {numero_fila}: "
-                f"cronología no informada."
+                f"Fila editable {numero_fila}: cronología no informada."
             )
 
         if (
@@ -1016,23 +1305,131 @@ def validar_df(df, alertas_parser=None):
             and pd.isna(fila["cantidad"])
         ):
             alertas.append(
-                f"Fila editable {numero_fila}: "
-                f"cantidad no informada para material "
-                f"'{fila['material']}'."
+                f"Fila editable {numero_fila}: cantidad no informada "
+                f"para material '{fila['material']}'."
             )
 
         if bool(fila["material_nuevo"]):
             alertas.append(
-                f"Fila editable {numero_fila}: "
-                f"material nuevo/no catastrado "
-                f"'{fila['material']}'."
+                f"Fila editable {numero_fila}: material nuevo/no "
+                f"catastrado '{fila['material']}'."
             )
 
-    if not alertas:
+    # Cada nivel debe incluir Subactual, Histórico y Prehispánico.
+    columnas_nivel = ["fecha", "unidad", "nivel", "estrato"]
+
+    for clave, grupo in df.groupby(
+        columnas_nivel,
+        dropna=False,
+    ):
+        _, unidad, nivel, _ = clave
+        cronologias_presentes = {
+            cronologia
+            for cronologia in grupo["cronologia"].dropna().unique()
+            if cronologia not in {"", "No informado"}
+        }
+
+        for cronologia in CRONOLOGIAS_OBLIGATORIAS:
+            if cronologia not in cronologias_presentes:
+                nombre = nombre_cronologia(cronologia)
+                alertas.append(
+                    f"{nombre} no informado: unidad {unidad}, "
+                    f"nivel {int(nivel)}. Si no hay materiales, "
+                    f"escriba '{nombre}: 0'."
+                )
+
+    # Revisa el orden cuando se declararon las tres cronologías.
+    declaraciones_por_nivel = defaultdict(list)
+
+    for declaracion in declaraciones:
+        nivel_declarado = declaracion.get("nivel")
+
+        if nivel_declarado is None:
+            continue
+
+        clave = (
+            declaracion.get("fecha", "No informado"),
+            declaracion.get("unidad", "No informado"),
+            int(nivel_declarado),
+            declaracion.get("estrato"),
+        )
+        cronologia = declaracion.get("cronologia")
+
+        if cronologia not in declaraciones_por_nivel[clave]:
+            declaraciones_por_nivel[clave].append(cronologia)
+
+    for clave, orden_declarado in declaraciones_por_nivel.items():
+        if all(
+            cronologia in orden_declarado
+            for cronologia in CRONOLOGIAS_OBLIGATORIAS
+        ):
+            orden_filtrado = [
+                cronologia
+                for cronologia in orden_declarado
+                if cronologia in CRONOLOGIAS_OBLIGATORIAS
+            ]
+
+            if orden_filtrado != CRONOLOGIAS_OBLIGATORIAS:
+                _, unidad, nivel, _ = clave
+                alertas.append(
+                    f"Orden de cronologías no recomendado: unidad "
+                    f"{unidad}, nivel {nivel}. Use Subactual, "
+                    f"Histórico y Prehispánico, en ese orden."
+                )
+
+    # Compara el total informado con la suma de materiales.
+    for declaracion in declaraciones:
+        nivel_declarado = declaracion.get("nivel")
+
+        if nivel_declarado is None:
+            continue
+
+        fecha = declaracion.get("fecha", "No informado")
+        unidad = declaracion.get("unidad", "No informado")
+        nivel = int(nivel_declarado)
+        cronologia = declaracion.get("cronologia")
+        cantidad_declarada = declaracion.get("cantidad_declarada")
+        nombre = nombre_cronologia(cronologia)
+
+        if cantidad_declarada is None:
+            alertas.append(
+                f"Total no informado en {nombre}: unidad {unidad}, "
+                f"nivel {nivel}. Escriba '{nombre}: 0' o "
+                f"'{nombre}: N'."
+            )
+            continue
+
+        coincidencias = df[
+            (df["fecha"] == fecha)
+            & (df["unidad"] == unidad)
+            & (df["nivel"] == nivel)
+            & (df["cronologia"] == cronologia)
+            & (df["material"] != MATERIAL_SIN_MATERIAL)
+        ]
+
+        suma_materiales = int(
+            coincidencias["cantidad"].fillna(0).sum()
+        )
+
+        if int(cantidad_declarada) != suma_materiales:
+            alertas.append(
+                f"Total inconsistente en {nombre}: unidad {unidad}, "
+                f"nivel {nivel}. Total declarado "
+                f"{int(cantidad_declarada)}, suma de materiales "
+                f"{suma_materiales}."
+            )
+
+    alertas_unicas = list(dict.fromkeys(alertas))
+
+    if not alertas_unicas:
         return pd.DataFrame({"Estado": ["Sin alertas"]})
 
-    return pd.DataFrame({"Alerta": alertas})
+    return pd.DataFrame({"Alerta": alertas_unicas})
 
+
+# ==========================================================
+# EXCEL Y RESPALDO
+# ==========================================================
 
 def aplicar_formato_excel(writer, nombre_hoja):
     worksheet = writer.book[nombre_hoja]
@@ -1041,16 +1438,12 @@ def aplicar_formato_excel(writer, nombre_hoja):
         "solid",
         fgColor="D9EAF7",
     )
-
     fuente_encabezado = Font(bold=True)
-
     alineacion_encabezado = Alignment(
         horizontal="center",
         vertical="center",
         wrap_text=True,
     )
-
-    # Cuerpo: alineación horizontal izquierda y vertical centrada.
     alineacion_cuerpo = Alignment(
         horizontal="left",
         vertical="center",
@@ -1073,7 +1466,6 @@ def aplicar_formato_excel(writer, nombre_hoja):
         letra_columna = get_column_letter(
             celdas_columna[0].column
         )
-
         largo_maximo = 0
 
         for celda in celdas_columna:
@@ -1083,9 +1475,7 @@ def aplicar_formato_excel(writer, nombre_hoja):
                     len(str(celda.value)),
                 )
 
-        worksheet.column_dimensions[
-            letra_columna
-        ].width = min(
+        worksheet.column_dimensions[letra_columna].width = min(
             max(largo_maximo + 2, 14),
             70,
         )
@@ -1100,28 +1490,29 @@ def crear_excel_en_memoria(
     df_resumen,
     df_detalle,
     df_alertas,
+    df_comentarios,
 ):
     output = BytesIO()
 
-    with pd.ExcelWriter(
-        output,
-        engine="openpyxl",
-    ) as writer:
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df_resumen.to_excel(
             writer,
             sheet_name="Para copiar",
             index=False,
         )
-
         df_detalle.to_excel(
             writer,
             sheet_name="Detalle editable",
             index=False,
         )
-
         df_alertas.to_excel(
             writer,
             sheet_name="Alertas",
+            index=False,
+        )
+        df_comentarios.to_excel(
+            writer,
+            sheet_name="Comentarios",
             index=False,
         )
 
@@ -1129,11 +1520,9 @@ def crear_excel_en_memoria(
             "Para copiar",
             "Detalle editable",
             "Alertas",
+            "Comentarios",
         ]:
-            aplicar_formato_excel(
-                writer,
-                nombre_hoja,
-            )
+            aplicar_formato_excel(writer, nombre_hoja)
 
     output.seek(0)
     return output.getvalue()
@@ -1144,17 +1533,16 @@ def crear_respaldo_zip(
     df_resumen,
     df_detalle,
     df_alertas,
+    df_comentarios,
 ):
-    timestamp = datetime.now().strftime(
-        "%Y-%m-%d_%H-%M-%S"
-    )
-
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     output = BytesIO()
 
     excel_bytes = crear_excel_en_memoria(
         df_resumen,
         df_detalle,
         df_alertas,
+        df_comentarios,
     )
 
     with zipfile.ZipFile(
@@ -1166,44 +1554,59 @@ def crear_respaldo_zip(
             f"{timestamp}_reporte_para_copiar.xlsx",
             excel_bytes,
         )
-
         archivo_zip.writestr(
             f"{timestamp}_texto_original.txt",
             texto_original,
         )
-
         archivo_zip.writestr(
             f"{timestamp}_resumen_para_copiar.csv",
             df_resumen.to_csv(index=False).encode("utf-8-sig"),
         )
-
         archivo_zip.writestr(
             f"{timestamp}_detalle_editable.csv",
             df_detalle.to_csv(index=False).encode("utf-8-sig"),
         )
-
         archivo_zip.writestr(
             f"{timestamp}_alertas.csv",
             df_alertas.to_csv(index=False).encode("utf-8-sig"),
+        )
+        archivo_zip.writestr(
+            f"{timestamp}_comentarios.csv",
+            df_comentarios.to_csv(index=False).encode("utf-8-sig"),
+        )
+        archivo_zip.writestr(
+            "INSTRUCTIVO_FORMATO_REPORTE.txt",
+            FORMATO_REPORTE_TXT.encode("utf-8-sig"),
         )
 
     output.seek(0)
     return output.getvalue(), timestamp
 
 
-if "texto_reportes" not in st.session_state:
-    st.session_state["texto_reportes"] = ""
+# ==========================================================
+# INTERFAZ STREAMLIT
+# ==========================================================
 
-if "resultado_generado" not in st.session_state:
-    st.session_state["resultado_generado"] = False
+def inicializar_estado():
+    if "texto_reportes" not in st.session_state:
+        st.session_state["texto_reportes"] = ""
 
-if "df_extraido" not in st.session_state:
-    st.session_state["df_extraido"] = pd.DataFrame(
-        columns=COLUMNAS_EDITOR
-    )
+    if "resultado_generado" not in st.session_state:
+        st.session_state["resultado_generado"] = False
 
-if "alertas_parser" not in st.session_state:
-    st.session_state["alertas_parser"] = []
+    if "df_extraido" not in st.session_state:
+        st.session_state["df_extraido"] = pd.DataFrame(
+            columns=COLUMNAS_EDITOR
+        )
+
+    if "alertas_parser" not in st.session_state:
+        st.session_state["alertas_parser"] = []
+
+    if "comentarios_parser" not in st.session_state:
+        st.session_state["comentarios_parser"] = []
+
+    if "declaraciones_parser" not in st.session_state:
+        st.session_state["declaraciones_parser"] = []
 
 
 def limpiar_caja_texto():
@@ -1217,147 +1620,156 @@ def limpiar_todo():
         columns=COLUMNAS_EDITOR
     )
     st.session_state["alertas_parser"] = []
+    st.session_state["comentarios_parser"] = []
+    st.session_state["declaraciones_parser"] = []
 
 
 def agregar_reporte_tipo():
-    texto_actual = st.session_state.get(
-        "texto_reportes",
-        "",
-    )
+    texto_actual = st.session_state.get("texto_reportes", "")
 
     if texto_actual.strip():
         st.session_state["texto_reportes"] = (
-            texto_actual.strip()
-            + "\n\n"
-            + REPORTE_TIPO
+            texto_actual.strip() + "\n\n" + REPORTE_TIPO
         )
     else:
         st.session_state["texto_reportes"] = REPORTE_TIPO
 
 
 def cargar_reporte_ejemplo():
-    texto_actual = st.session_state.get(
-        "texto_reportes",
-        "",
-    )
+    texto_actual = st.session_state.get("texto_reportes", "")
 
     if texto_actual.strip():
         st.session_state["texto_reportes"] = (
-            texto_actual.strip()
-            + "\n\n"
-            + REPORTE_EJEMPLO
+            texto_actual.strip() + "\n\n" + REPORTE_EJEMPLO
         )
     else:
         st.session_state["texto_reportes"] = REPORTE_EJEMPLO
 
 
-st.title("📋 Generador de reportes arqueológicos desde WhatsApp")
+def main():
+    inicializar_estado()
 
-st.write(
-    "Convierte mensajes de WhatsApp en un reporte "
-    "estructurado, editable y exportable a Excel."
-)
+    st.title("📋 Generador de reportes arqueológicos desde WhatsApp")
+    st.caption("Versión 3.1 · validación de cronologías y totales")
 
-with st.expander(
-    "ℹ️ Instrucciones de uso",
-    expanded=True,
-):
-    st.markdown(
-        """
-        **La aplicación permite:**
-
-        - Extraer fecha, unidad, nivel, estrato/capa,
-          cronología, materiales y cantidades.
-        - Reconocer **Histórico**, **Prehispánico** y **Subactual**.
-        - Reconocer variantes como `prehispánico`,
-          `prehispanico`, `pre-hispánico`,
-          `pre-hispanico` y `pre hispánico`.
-        - Detectar niveles con conteos en cero.
-        - Conservar y alertar materiales nuevos no catastrados.
-        - Corregir, agregar o eliminar filas manualmente.
-        - Descargar un Excel y un respaldo completo ZIP.
-
-        **Flujo recomendado:**
-
-        1. Pega uno o varios reportes.
-        2. Presiona **Procesar reportes**.
-        3. Revisa y corrige la tabla editable.
-        4. Revisa las alertas.
-        5. Descarga el resultado.
-        """
+    st.write(
+        "Procesa reportes de WhatsApp, permite revisar los datos "
+        "y genera un Excel descargable."
     )
 
-st.subheader("1. Ingreso de reportes")
+    with st.expander(
+        "ℹ️ Formato obligatorio para el equipo",
+        expanded=True,
+    ):
+        st.markdown(
+            """
+            Cada nivel debe incluir **Subactual, Histórico y Prehispánico**,
+            en ese orden. Cuando no haya materiales, se debe escribir `0`.
+            Los totales declarados deben coincidir con la suma del detalle.
 
-st.text_area(
-    "Pega aquí uno o varios reportes de WhatsApp",
-    height=360,
-    key="texto_reportes",
-    placeholder=(
-        "[10/7, 18:43] Persona: 10/07/26\n"
-        "Unidad 18-4\n"
-        "N38, capa C\n"
-        "Subactual: 0\n"
-        "Histórico:\n"
-        "-2 lozas\n"
-        "Prehispánico:\n"
-        "-1 cerámica"
-    ),
-)
+            ```text
+            [10/7, 6:43 p.m.] Nombre: 10/07/2026
 
-columnas_botones = st.columns([1.15, 1, 1, 1, 1])
+            Comentario breve de la jornada.
 
-with columnas_botones[0]:
-    procesar = st.button(
-        "Procesar reportes",
-        type="primary",
-    )
+            Unidad 18-4
 
-with columnas_botones[1]:
-    st.button(
-        "Limpiar caja",
-        on_click=limpiar_caja_texto,
-    )
+            Nivel 38, capa C
 
-with columnas_botones[2]:
-    st.button(
-        "Agregar reporte tipo",
-        on_click=agregar_reporte_tipo,
-    )
+            Subactual: 0
 
-with columnas_botones[3]:
-    st.button(
-        "Cargar ejemplo",
-        on_click=cargar_reporte_ejemplo,
-    )
+            Histórico: 3
+            -1 osteofauna
+            -2 lozas
 
-with columnas_botones[4]:
-    st.button(
-        "Limpiar todo",
-        on_click=limpiar_todo,
-    )
+            Prehispánico: 1
+            -1 cerámica
+            ```
 
-if procesar:
-    texto = st.session_state["texto_reportes"]
-
-    if not texto.strip():
-        st.warning("Debes pegar al menos un reporte.")
-    else:
-        registros, alertas_parser = parsear_todo(texto)
-
-        st.session_state["df_extraido"] = registros_a_df(
-            registros
+            Los comentarios pueden ir antes de la unidad. La unidad, el nivel,
+            cada cronología y cada material deben escribirse en líneas
+            independientes.
+            """
         )
 
-        st.session_state["alertas_parser"] = alertas_parser
-        st.session_state["resultado_generado"] = True
+        st.download_button(
+            label="Descargar instructivo de formato TXT",
+            data=FORMATO_REPORTE_TXT.encode("utf-8-sig"),
+            file_name="FORMATO_REPORTE_ARQUEOLOGICO.txt",
+            mime="text/plain",
+        )
 
-if st.session_state["resultado_generado"]:
+
+    st.subheader("1. Ingreso de reportes")
+
+    st.text_area(
+        "Pega aquí uno o varios reportes de WhatsApp",
+        height=360,
+        key="texto_reportes",
+        placeholder=REPORTE_TIPO,
+    )
+
+    columnas_botones = st.columns([1.15, 1, 1, 1, 1])
+
+    with columnas_botones[0]:
+        procesar = st.button(
+            "Procesar reportes",
+            type="primary",
+        )
+
+    with columnas_botones[1]:
+        st.button(
+            "Limpiar caja",
+            on_click=limpiar_caja_texto,
+        )
+
+    with columnas_botones[2]:
+        st.button(
+            "Agregar reporte tipo",
+            on_click=agregar_reporte_tipo,
+        )
+
+    with columnas_botones[3]:
+        st.button(
+            "Cargar ejemplo",
+            on_click=cargar_reporte_ejemplo,
+        )
+
+    with columnas_botones[4]:
+        st.button(
+            "Limpiar todo",
+            on_click=limpiar_todo,
+        )
+
+    if procesar:
+        texto = st.session_state["texto_reportes"]
+
+        if not texto.strip():
+            st.warning("Debes pegar al menos un reporte.")
+        else:
+            (
+                registros,
+                alertas,
+                comentarios,
+                declaraciones,
+            ) = parsear_todo(texto)
+
+            st.session_state["df_extraido"] = registros_a_df(
+                registros
+            )
+            st.session_state["alertas_parser"] = alertas
+            st.session_state["comentarios_parser"] = comentarios
+            st.session_state["declaraciones_parser"] = declaraciones
+            st.session_state["resultado_generado"] = True
+
+    if not st.session_state["resultado_generado"]:
+        return
+
     st.subheader("2. Revisar y editar datos extraídos")
 
     st.info(
         "Puedes corregir campos, agregar filas nuevas o eliminar filas. "
-        "Cuando falte información, puedes completarla o dejarla como "
+        "Cuando falte información, complétala o déjala como "
         "'No informado'."
     )
 
@@ -1408,17 +1820,14 @@ if st.session_state["resultado_generado"]:
     )
 
     df_editado_limpio = limpiar_df_editado(df_editado)
-
-    df_resumen = resumen_por_grupo_df(
-        df_editado_limpio
-    )
-
+    df_resumen = resumen_por_grupo_df(df_editado_limpio)
     df_alertas = validar_df(
         df_editado_limpio,
-        st.session_state.get(
-            "alertas_parser",
-            [],
-        ),
+        st.session_state.get("alertas_parser", []),
+        st.session_state.get("declaraciones_parser", []),
+    )
+    df_comentarios = comentarios_a_df(
+        st.session_state.get("comentarios_parser", [])
     )
 
     st.subheader("3. Alertas y validaciones")
@@ -1451,8 +1860,7 @@ if st.session_state["resultado_generado"]:
     if materiales_nuevos:
         st.subheader("Materiales no reconocidos detectados")
         st.warning(
-            "Estos materiales se conservarán en el reporte, "
-            "pero conviene revisar su nombre."
+            "Se conservarán en el reporte, pero conviene revisar su nombre."
         )
         st.write(
             ", ".join(
@@ -1461,49 +1869,66 @@ if st.session_state["resultado_generado"]:
             )
         )
 
-    st.subheader("4. Reporte para copiar")
+    st.subheader("4. Comentarios detectados")
+
+    if df_comentarios.empty:
+        st.info("No se detectaron comentarios adicionales.")
+    else:
+        st.dataframe(
+            df_comentarios,
+            use_container_width=True,
+        )
+
+    st.subheader("5. Reporte para copiar")
 
     if df_resumen.empty:
         st.error(
             "No se pudo generar el resumen. "
             "Revisa o completa la tabla editable."
         )
-    else:
-        st.dataframe(
-            df_resumen,
-            use_container_width=True,
+        return
+
+    st.dataframe(
+        df_resumen,
+        use_container_width=True,
+    )
+
+    excel_bytes = crear_excel_en_memoria(
+        df_resumen,
+        df_editado_limpio,
+        df_alertas,
+        df_comentarios,
+    )
+
+    columnas_descarga = st.columns([1, 1])
+
+    with columnas_descarga[0]:
+        st.download_button(
+            label="Descargar Excel",
+            data=excel_bytes,
+            file_name="reporte_para_copiar.xlsx",
+            mime=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
         )
 
-        excel_bytes = crear_excel_en_memoria(
-            df_resumen,
-            df_editado_limpio,
-            df_alertas,
+    with columnas_descarga[1]:
+        respaldo_bytes, timestamp = crear_respaldo_zip(
+            texto_original=st.session_state["texto_reportes"],
+            df_resumen=df_resumen,
+            df_detalle=df_editado_limpio,
+            df_alertas=df_alertas,
+            df_comentarios=df_comentarios,
         )
 
-        columnas_descarga = st.columns([1, 1])
+        st.download_button(
+            label="Descargar respaldo completo ZIP",
+            data=respaldo_bytes,
+            file_name=f"respaldo_reporte_{timestamp}.zip",
+            mime="application/zip",
+        )
 
-        with columnas_descarga[0]:
-            st.download_button(
-                label="Descargar Excel",
-                data=excel_bytes,
-                file_name="reporte_para_copiar.xlsx",
-                mime=(
-                    "application/vnd.openxmlformats-officedocument."
-                    "spreadsheetml.sheet"
-                ),
-            )
 
-        with columnas_descarga[1]:
-            respaldo_bytes, timestamp = crear_respaldo_zip(
-                texto_original=st.session_state["texto_reportes"],
-                df_resumen=df_resumen,
-                df_detalle=df_editado_limpio,
-                df_alertas=df_alertas,
-            )
-
-            st.download_button(
-                label="Descargar respaldo completo ZIP",
-                data=respaldo_bytes,
-                file_name=f"respaldo_reporte_{timestamp}.zip",
-                mime="application/zip",
-            )
+if __name__ == "__main__":
+    main()
