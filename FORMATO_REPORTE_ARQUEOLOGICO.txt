@@ -1,0 +1,140 @@
+INSTRUCTIVO PARA EL ENVÍO DE REPORTES ARQUEOLÓGICOS
+===================================================
+
+OBJETIVO
+-------
+Este formato permite que la aplicación reconozca correctamente cada unidad,
+nivel, cronología, material y cantidad. Seguir la estructura evita registros
+incompletos, alertas innecesarias y correcciones manuales en el Excel.
+
+IMPORTANTE
+----------
+El reporte se procesa línea por línea. Por esa razón, cada encabezado y cada
+material debe escribirse en una línea independiente. No se deben omitir
+cronologías: cuando una categoría no tenga materiales, debe informarse con 0.
+
+ORDEN OBLIGATORIO POR CADA NIVEL
+--------------------------------
+1. Unidad
+2. Nivel y capa
+3. Subactual
+4. Histórico
+5. Prehispánico
+
+FORMATO TIPO
+------------
+[10/7, 6:43 p.m.] Nombre: 10/07/2026
+
+Equipo y comentario breve de la jornada.
+
+Unidad 18-4
+
+Nivel 38, capa C
+
+Subactual: 0
+
+Histórico: 3
+-1 osteofauna
+-2 lozas
+
+Prehispánico: 1
+-1 cerámica
+
+REGLAS DE ENVÍO
+---------------
+1. Escribir la unidad como:
+   Unidad 18
+   Unidad 18-4
+   Unidad 7a
+   Unidad 9-r41
+
+2. Escribir el nivel y la capa como:
+   Nivel 38, capa C
+   También se acepta: N38, capa C
+
+3. Incluir siempre las tres cronologías en este orden:
+   Subactual
+   Histórico
+   Prehispánico
+
+4. Informar el total junto al encabezado:
+   Subactual: 0
+   Histórico: 3
+   Prehispánico: 1
+
+5. Si no hay materiales en una cronología, escribir 0. No dejar el campo vacío:
+   Correcto: Subactual: 0
+   Incorrecto: Subactual:
+   Incorrecto: omitir Subactual
+
+6. Si el total es mayor que 0, detallar cada material en una línea:
+   Histórico: 4
+   -2 lozas
+   -1 vidrio
+   -1 cerámica
+
+7. La suma de los materiales debe coincidir con el total declarado.
+   En el ejemplo anterior: 2 + 1 + 1 = 4.
+
+8. Usar idealmente el formato:
+   -1 loza
+   -3 vidrios
+   -1 osteofauna
+
+   También se acepta:
+   - Loza: 1
+   1 loza
+
+9. Las observaciones de un material pueden escribirse después de una coma:
+   -1 osteofauna, fragmento con huella de corte manual
+
+10. Los comentarios generales de jornada deben ir después del encabezado y
+    antes de la línea Unidad. Pueden incluir horarios, nombres y actividades.
+
+11. Para más de una unidad, repetir el bloque completo desde “Unidad”.
+
+12. No escribir unidad, nivel, cronología y materiales en una misma línea.
+
+13. No reemplazar los nombres Subactual, Histórico o Prehispánico por nombres
+    personales o abreviaturas.
+
+14. Si aparece un material no habitual, escribirlo de todos modos. La
+    aplicación lo conservará y lo marcará para revisión.
+
+EJEMPLO CON DOS NIVELES
+-----------------------
+[10/7, 6:43 p.m.] Nombre: 10/07/2026
+
+Equipo Vale y Clara.
+Jornada sin novedades.
+
+Unidad 18-4
+
+Nivel 38, capa C
+
+Subactual: 0
+
+Histórico: 3
+-1 osteofauna
+-2 lozas
+
+Prehispánico: 1
+-1 cerámica
+
+Nivel 39, capa C
+
+Subactual: 0
+
+Histórico: 6
+-4 lozas
+-2 vidrios
+
+Prehispánico: 0
+
+¿POR QUÉ ES IMPORTANTE RESPETAR ESTE FORMATO?
+---------------------------------------------
+Cuando una cronología se omite, la aplicación no puede saber si realmente no
+hubo materiales o si el dato quedó sin informar. Cuando los totales no
+coinciden con el detalle, el Excel puede contener información inconsistente.
+Seguir un único formato permite comparar jornadas, reducir errores y mantener
+un registro uniforme para todo el equipo.
