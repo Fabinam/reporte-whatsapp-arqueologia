@@ -51,6 +51,10 @@ ORDEN_FRECUENCIA = [
     "loza", "metal", "baldosa", "cerámica", "vidrio", "osteofauna", "misceláneo"
 ]
 
+ORDEN_CRONOLOGIAS = [
+    "histórico", "prehispánico", "subactual"
+]
+
 MATERIAL_SIN_MATERIAL = "sin material"
 MATERIALES_EXCLUIDOS_DESCRIPCION = {"malacológico", "misceláneo", MATERIAL_SIN_MATERIAL}
 
@@ -62,7 +66,8 @@ COLUMNAS_EDITOR = [
 COLUMNAS_RESUMEN = [
     "Fecha", "Unidad", "Nivel de inicio", "Nivel de término",
     "Total niveles excavados", "Nivel de cierre", "Estratigrafía",
-    "Material cultural", "Descripción general", "Cronología", "Frecuencia históricos"
+    "Material cultural", "Descripción general", "Cronología",
+    "Frecuencia históricos", "Frecuencia prehispánicos"
 ]
 
 REPORTE_EJEMPLO = """[18/5, 4:37 p.m.] Valeria: 9-r41
@@ -313,6 +318,14 @@ def preparar_texto(texto):
     texto = re.sub(
         r"(?:^|\s)-?\s*(Material arqueológico|Material arqueologico|Histórico|Historico)\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+|\d+)?\s*:??",
         r"\nCRONO histórico\n",
+        texto,
+        flags=re.I
+    )
+
+    # Cronologías. Reconoce Prehispánico y variantes con/sin tilde, guion o espacio.
+    texto = re.sub(
+        r"(?:^|\s)-?\s*(Pre[\s-]*hisp[aá]nico)\s*(?:\(?n\s*=\s*\d+\)?|=\s*\d+|:\s*\d+|\d+)?\s*:??",
+        r"\nCRONO prehispánico\n",
         texto,
         flags=re.I
     )
@@ -612,6 +625,13 @@ def resumen_por_grupo_df(df):
             & (grupo["cantidad"] > 0)
         ]
 
+        prehispanicos = grupo[
+            (grupo["cronologia"] == "prehispánico")
+            & (grupo["material"] != MATERIAL_SIN_MATERIAL)
+            & (grupo["cantidad"].notna())
+            & (grupo["cantidad"] > 0)
+        ]
+
         # Estratigrafía: muestra estratos declarados aunque tengan N=0.
         por_estrato = defaultdict(int)
         estratos_declarados = [
@@ -652,14 +672,17 @@ def resumen_por_grupo_df(df):
             if c not in {"", "No informado"}
         }
 
-        if cronologias == {"histórico", "subactual"}:
-            col_m = "Histórico / Subactual"
-        elif cronologias == {"histórico"}:
-            col_m = "Histórico"
-        elif cronologias == {"subactual"}:
-            col_m = "Subactual"
-        else:
-            col_m = "No informado"
+        nombres_cronologia = {
+            "histórico": "Histórico",
+            "prehispánico": "Prehispánico",
+            "subactual": "Subactual",
+        }
+
+        col_m = " / ".join(
+            nombres_cronologia[c]
+            for c in ORDEN_CRONOLOGIAS
+            if c in cronologias
+        ) or "No informado"
 
         # Frecuencia históricos: todo lo histórico separado, incluyendo misceláneo.
         por_material_hist = defaultdict(int)
@@ -678,6 +701,22 @@ def resumen_por_grupo_df(df):
             if m in por_material_hist
         ) or "No informado"
 
+        por_material_preh = defaultdict(int)
+
+        for _, r in prehispanicos.iterrows():
+            por_material_preh[r["material"]] += int(r["cantidad"])
+
+        orden_freq_preh = ORDEN_FRECUENCIA + sorted([
+            m for m in por_material_preh
+            if m not in ORDEN_FRECUENCIA
+        ])
+
+        col_preh = ", ".join(
+            f"{nombre_material_frecuencia(m)} (N={por_material_preh[m]})"
+            for m in orden_freq_preh
+            if m in por_material_preh
+        ) or "No informado"
+
         resumenes.append({
             "Fecha": fecha,
             "Unidad": unidad,
@@ -690,6 +729,7 @@ def resumen_por_grupo_df(df):
             "Descripción general": col_l,
             "Cronología": col_m,
             "Frecuencia históricos": col_n,
+            "Frecuencia prehispánicos": col_preh,
         })
 
     return pd.DataFrame(resumenes, columns=COLUMNAS_RESUMEN)
@@ -850,7 +890,8 @@ with st.expander("ℹ️ Instrucciones de uso", expanded=True):
 
         - Extraer información desde reportes enviados por WhatsApp.
         - Reconocer fecha, unidad, nivel, capa/estrato, cronología, materiales y cantidades.
-        - Detectar niveles con `Histórico: 0` o `Subactual: 0` sin perderlos.
+        - Detectar niveles con `Histórico: 0`, `Prehispánico: 0` o `Subactual: 0` sin perderlos.
+        - Reconocer `Prehispánico`, `Prehispanico`, `Pre-hispánico`, `Pre-hispanico` y variantes con espacio.
         - Identificar materiales nuevos no catastrados.
         - Editar manualmente los datos antes de exportar.
         - Descargar un Excel listo para copiar y un respaldo completo ZIP.
@@ -877,6 +918,8 @@ Nivel 45, Capa G
 Subactual: 0
 Histórico:
 - loza: 2
+Prehispánico:
+- cerámica: 1
 
 Nivel 46, Capa G
 Subactual: 0
@@ -934,7 +977,7 @@ if st.session_state["resultado_generado"]:
             "estrato": st.column_config.TextColumn("Estrato/Capa"),
             "cronologia": st.column_config.SelectboxColumn(
                 "Cronología",
-                options=["histórico", "subactual", "No informado"]
+                options=["histórico", "prehispánico", "subactual", "No informado"]
             ),
             "material": st.column_config.TextColumn("Material"),
             "cantidad": st.column_config.NumberColumn("Cantidad", step=1),
