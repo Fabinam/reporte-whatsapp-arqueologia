@@ -1214,7 +1214,7 @@ def resumen_por_grupo_df(df):
 
         cronologias_presentes = {
             cronologia
-            for cronologia in grupo["cronologia"]
+            for cronologia in df_con_material["cronologia"] # <-- Cambio clave aquí
             .dropna()
             .unique()
             if cronologia not in {"", "No informado"}
